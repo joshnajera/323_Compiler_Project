@@ -96,14 +96,14 @@ class Lexer:
         else:
             # print("Error: String is not a valid int, real, or identifier")
             self.state = State.START
-            return (input_string, "ERROR")
+            print("ERROR: '{}' is not a valid Identifier, Integer, or Float".format(input_string))
+            return (False)
 
 def main():
     '''Main program'''
     lex = Lexer()
     in_file = open("test_code.txt")
     buffer = ""
-    special = False
     for line in in_file:
         for word in line.split(' '):
             
@@ -146,7 +146,8 @@ def main():
                     buffer += character
                     
                 evaluation = lex.eval(buffer)
-                print(evaluation)
+                if evaluation[1]:
+                    print(evaluation)
                 buffer = ''
             #     if character in DigLet:       # While the character is not a space, add it to the buffer
             # if buffer in SOP:
