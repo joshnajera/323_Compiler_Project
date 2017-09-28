@@ -95,6 +95,7 @@ class Lexer:
             return (False)
         
     def tokenize(self, in_file):
+        '''Iterates over a text file, generating tokens and yielding them'''
         buffer = ""
         for line in in_file:
             for word in line.split(' '):
@@ -113,14 +114,16 @@ class Lexer:
                         if character in {":", "%"}: # Checks if curr char is a part of a 'multicharacter' Separator/Operator
                             if buffer:              # Evaluate anything that might be in the buffer first
                                 evaluation = self.eval(word)
-                                yield evaluation
+                                if evaluation:
+                                    yield evaluation
                                 buffer = ''         # Clear buffer
                         
                             nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
                             temp = character + nxt  #    multicharacter Separator/Operator
                             if temp in SEP_OP:
                                 evaluation = self.eval(temp)
-                                yield evaluation
+                                if evaluation:
+                                    yield evaluation
                             else:
                                 buffer = nxt
                                 print("ERROR")
@@ -129,9 +132,10 @@ class Lexer:
                         if character in SEP_OP:        # Checks if curr char is a separator or Operator
                             if buffer:
                                 evaluation = self.eval(buffer)
-                                yield evaluation
+                                if evaluation:
+                                    yield evaluation
                             evaluation = self.eval(character)
-                            print(evaluation)
+                            yield evaluation
                             buffer = ''
                             continue
                     
