@@ -4,12 +4,11 @@ import string
 import enum
 
 KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "boolean", "real"}
-PUNCTUATIONS = {':=', '+', '-', '*', '/', '@', '(', ')', '{', '}'}
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
 OPERATORS = {':=', '+', '-', '*', '/'}
 LETTERS = set(string.ascii_letters)
 SEPARATORS = {'(', ')', '{', '}', ',', ';', '@', '%%'}
-SOP = SEPARATORS.union(OPERATORS).union(PUNCTUATIONS)
+SEP_OP = SEPARATORS.union(OPERATORS)
 DIG_LETT = DIGITS.union(LETTERS).union({".", "#"})
 
 class State(enum.Enum):
@@ -82,91 +81,74 @@ class Lexer:
                 return -1
             
         if self.state == State.ID1 or self.state == State.ID2:
-            # print("Entered string is an identifier")
             self.state = State.START
             return (input_string, "Identifier")
         elif self.state == State.INT:
-            # print("Entered string is an integer")
             self.state = State.START
             return (input_string, "Integer")
         elif self.state == State.RL:
-            # print("Entered string is a float")
             self.state = State.START
             return (input_string, "Float")
         else:
-            # print("Error: String is not a valid int, real, or identifier")
             self.state = State.START
             print("ERROR: '{}' is not a valid Identifier, Integer, or Float".format(input_string))
             return (False)
+        
+    def tokenize(self, in_file):
+        buffer = ""
+        for line in in_file:
+            for word in line.split(' '):
+            
+                if word == '':
+                    continue
+            
+                if word in SEP_OP or word in KEYWORDS: # TODO Clean this line up
+                    evaluation = self.eval(word)
+                    yield evaluation
+            
+                else:
+                    word_iter = iter(word)          # Make an iterator out of the word to allow for the use of "next(iter)"
+                
+                    for character in word_iter:
+                        if character in {":", "%"}: # Checks if curr char is a part of a 'multicharacter' Separator/Operator
+                            if buffer:              # Evaluate anything that might be in the buffer first
+                                evaluation = self.eval(word)
+                                yield evaluation
+                                buffer = ''         # Clear buffer
+                        
+                            nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
+                            temp = character + nxt  #    multicharacter Separator/Operator
+                            if temp in SEP_OP:
+                                evaluation = self.eval(temp)
+                                yield evaluation
+                            else:
+                                buffer = nxt
+                                print("ERROR")
+                            continue
+                    
+                        if character in SEP_OP:        # Checks if curr char is a separator or Operator
+                            if buffer:
+                                evaluation = self.eval(buffer)
+                                yield evaluation
+                            evaluation = self.eval(character)
+                            print(evaluation)
+                            buffer = ''
+                            continue
+                    
+                        buffer += character
+                
+                    evaluation = self.eval(buffer)
+                    if evaluation:
+                        yield evaluation
+                    buffer = ''
+        
 
 def main():
     '''Main program'''
     lex = Lexer()
     in_file = open("test_code.txt")
-    buffer = ""
-    for line in in_file:
-        for word in line.split(' '):
-            
-            if word == '':
-                continue
-                
-            if word in SOP or word in KEYWORDS: # TODO Clean this line up
-                evaluation = lex.eval(word)
-                print(evaluation)
-                
-            else:
-                word_iter = iter(word)          # Make an iterator out of the word to allow for the use of "next(iter)"
-                
-                for character in word_iter:
-                    if character in {":", "%"}: # Checks if curr char is a part of a 'multicharacter' Separator/Operator
-                        if buffer:              # Evaluate anything that might be in the buffer first
-                            evaluation = lex.eval(word)
-                            print(evaluation)
-                            buffer = ''         # Clear buffer
-                            
-                        nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
-                        temp = character + nxt  #    multicharacter Separator/Operator
-                        if temp in SOP:
-                            evaluation = lex.eval(temp)
-                            print(evaluation)
-                        else:
-                            buffer = nxt
-                            print("ERROR")
-                        continue
-                        
-                    if character in SOP:        # Checks if curr char is a separator or Operator
-                        if buffer:
-                            evaluation = lex.eval(buffer)
-                            print(evaluation)
-                        evaluation = lex.eval(character)
-                        print(evaluation)
-                        buffer = ''
-                        continue
-                        
-                    buffer += character
-                    
-                evaluation = lex.eval(buffer)
-                if evaluation[1]:
-                    print(evaluation)
-                buffer = ''
-            #     if character in DigLet:       # While the character is not a space, add it to the buffer
-            # if buffer in SOP:
-            #         print(buffer)
-            #         buffer = ''
-            #     buffer = buffer + character
-            # else:
-            #     if buffer and buffer not in {":"}:
-            #         print(buffer)
-            #         lex.eval(buffer)
-            #         buffer = ''
-            #     if character != ' ':
-            #         buffer += character
-            #         if buffer != ":":
-            #             print(buffer)
-            #             buffer = ''
-
-    # st = "123.0"
-    # lex.eval(st)
+    for token in lex.tokenize(in_file):
+        print(token)
     in_file.close()
 
 if __name__ == "__main__":
