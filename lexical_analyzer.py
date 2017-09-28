@@ -10,16 +10,16 @@ OPERATORS = {':=', '+', '-', '*', '/'}
 LETTERS = set(string.ascii_letters)
 SEPARATORS = {'(', ')', '{', '}', ',', ';', '@', '%%'}
 SOP = SEPARATORS.union(OPERATORS).union(PUNCTUATIONS)
-DigLet = DIGITS.union(LETTERS).union({".", "#"})
+DIG_LETT = DIGITS.union(LETTERS).union({".", "#"})
 
 class State(enum.Enum):
     '''Holds possible states for our lexer'''
     START = 0   # Starting state
-    ID1 = 1     # Identifier 1 -- Accepting state
-    ID2 = 2     # Identifier 2 -- Accepting state
-    INT = 3     # Integer -- Accepting state
+    ID1 = 1     # Identifier 1  -- Accepting state
+    ID2 = 2     # Identifier 2  -- Accepting state
+    INT = 3     # Integer       -- Accepting state
     PER = 4     # Period
-    RL = 5      # Real Number -- Accepting state
+    RL = 5      # Real Number   -- Accepting state
 
 class Lexer:
     '''A lexical analyzer for RAT17F'''
@@ -66,6 +66,13 @@ class Lexer:
     def eval(self, input_string):
         '''Iterates through each character in an input string,
             and calls corresponding transition functions for each'''
+        if input_string in KEYWORDS:
+            return (input_string, "Keyword")
+        elif input_string in OPERATORS:
+            return (input_string, "Operator")
+        elif input_string in SEPARATORS:
+            return (input_string, "Separator")
+        
         for char in input_string:
             if char not in self.transition:
                 print("Error: String is not a valid int, real, or identifier")
@@ -73,18 +80,23 @@ class Lexer:
             if self.transition[char]() == -1:
                 print("Error: String is not a valid int, real, or identifier")
                 return -1
+            
         if self.state == State.ID1 or self.state == State.ID2:
-            print("Entered string is an identifier")
+            # print("Entered string is an identifier")
             self.state = State.START
+            return (input_string, "Identifier")
         elif self.state == State.INT:
-            print("Entered string is an integer")
+            # print("Entered string is an integer")
             self.state = State.START
+            return (input_string, "Integer")
         elif self.state == State.RL:
-            print("Entered string is a real")
+            # print("Entered string is a float")
             self.state = State.START
+            return (input_string, "Float")
         else:
-            print("Error: String is not a valid int, real, or identifier")
+            # print("Error: String is not a valid int, real, or identifier")
             self.state = State.START
+            return (input_string, "ERROR")
 
 def main():
     '''Main program'''
@@ -94,36 +106,49 @@ def main():
     special = False
     for line in in_file:
         for word in line.split(' '):
+            
             if word == '':
                 continue
-            if word in SOP or word in KEYWORDS:
-                print(word)
-                # TODO: Deal with getting token type
+                
+            if word in SOP or word in KEYWORDS: # TODO Clean this line up
+                evaluation = lex.eval(word)
+                print(evaluation)
+                
             else:
-                a = iter(word)
-                for character in a:
-                    if character in {":", "%"}:
-                        if buffer:
-                            print(buffer)
-                            buffer = ''
-                        nxt = next(a)
-                        temp = character + nxt
+                word_iter = iter(word)          # Make an iterator out of the word to allow for the use of "next(iter)"
+                
+                for character in word_iter:
+                    if character in {":", "%"}: # Checks if curr char is a part of a 'multicharacter' Separator/Operator
+                        if buffer:              # Evaluate anything that might be in the buffer first
+                            evaluation = lex.eval(word)
+                            print(evaluation)
+                            buffer = ''         # Clear buffer
+                            
+                        nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
+                        temp = character + nxt  #    multicharacter Separator/Operator
                         if temp in SOP:
-                            print(temp)
+                            evaluation = lex.eval(temp)
+                            print(evaluation)
                         else:
                             buffer = nxt
                             print("ERROR")
                         continue
-                    if character in SOP:
+                        
+                    if character in SOP:        # Checks if curr char is a separator or Operator
                         if buffer:
-                            print(buffer)
-                        print(character)
+                            evaluation = lex.eval(buffer)
+                            print(evaluation)
+                        evaluation = lex.eval(character)
+                        print(evaluation)
                         buffer = ''
                         continue
+                        
                     buffer += character
-                print(buffer)
+                    
+                evaluation = lex.eval(buffer)
+                print(evaluation)
                 buffer = ''
-            #     if character in DigLet:     # While the character is not a space, add it to the buffer
+            #     if character in DigLet:       # While the character is not a space, add it to the buffer
             # if buffer in SOP:
             #         print(buffer)
             #         buffer = ''
@@ -141,6 +166,7 @@ def main():
 
     # st = "123.0"
     # lex.eval(st)
+    in_file.close()
 
 if __name__ == "__main__":
     main()
