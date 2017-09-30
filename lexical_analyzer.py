@@ -5,14 +5,15 @@ import enum
 
 KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "boolean", "real"}
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
-OPERATORS = {':=', '+', '-', '*', '/'}
+OPERATORS = {':=', '+', '-', '*', '/', '%%', '@'}
 LETTERS = set(string.ascii_letters)
-SEPARATORS = {'(', ')', '{', '}', ',', ';', '@', '%%'}
+SEPARATORS = {'(', ')', '{', '}', ',', ';'}
 SEP_OP = SEPARATORS.union(OPERATORS)
 DIG_LETT = DIGITS.union(LETTERS).union({".", "#"})
 
+
 class State(enum.Enum):
-    '''Holds possible states for our lexer'''
+    """Holds possible states for our lexer"""
     START = 0   # Starting state
     ID1 = 1     # Identifier 1  -- Accepting state
     ID2 = 2     # Identifier 2  -- Accepting state
@@ -20,11 +21,12 @@ class State(enum.Enum):
     PER = 4     # Period
     RL = 5      # Real Number   -- Accepting state
 
+
 class Lexer:
-    '''A lexical analyzer for RAT17F'''
+    """A lexical analyzer for RAT17F"""
     def __init__(self):
         self.state = State.START
-        self.transition = {"#":self.pound}
+        self.transition = {"#": self.pound}
         self.transition["."] = self.per
         for dig in DIGITS:
             self.transition[dig] = self.digit
@@ -32,21 +34,21 @@ class Lexer:
             self.transition[let] = self.letter
 
     def per(self):
-        '''Transition function for a period'''
+        """Transition function for a period"""
         if self.state == State.INT:
             self.state = State.PER
         else:
             return -1
 
     def pound(self):
-        '''Transition function for a pound sign'''
+        """Transition function for a pound sign"""
         if self.state == State.ID1:
             self.state = State.ID2
         else:
             return -1
 
     def digit(self):
-        '''Transition function for a digit'''
+        """Transition function for a digit"""
         if self.state == State.START or self.state == State.INT:
             self.state = State.INT
         elif self.state == State.PER or self.state == State.RL:
@@ -55,22 +57,21 @@ class Lexer:
             return -1
 
     def letter(self):
-        '''Transition function for a letter'''
+        """Transition function for a letter"""
         if self.state == State.START or self.state == State.ID2 or self.state == State.ID1:
             self.state = State.ID1
         else:
             return -1
 
-
     def eval(self, input_string):
-        '''Iterates through each character in an input string,
-            and calls corresponding transition functions for each'''
+        """Iterates through each character in an input string,
+            and calls corresponding transition functions for each"""
         if input_string in KEYWORDS:
-            return (input_string, "Keyword")
+            return ("Keyword", input_string)
         elif input_string in OPERATORS:
-            return (input_string, "Operator")
+            return ("Operator", input_string)
         elif input_string in SEPARATORS:
-            return (input_string, "Separator")
+            return ("Separator", input_string)
         
         for char in input_string:
             if char not in self.transition:
@@ -82,36 +83,36 @@ class Lexer:
             
         if self.state == State.ID1 or self.state == State.ID2:
             self.state = State.START
-            return (input_string, "Identifier")
+            return ("Identifier", input_string)
         elif self.state == State.INT:
             self.state = State.START
-            return (input_string, "Integer")
+            return ("Integer", input_string)
         elif self.state == State.RL:
             self.state = State.START
-            return (input_string, "Float")
+            return ("Float", input_string)
         else:
             self.state = State.START
             print("ERROR: '{}' is not a valid Identifier, Integer, or Float".format(input_string))
             return (False)
         
     def tokenize(self, in_file):
-        '''Iterates over a text file, generating tokens and yielding them'''
+        """Iterates over a text file, generating tokens and yielding them"""
         buffer = ""
         for line in in_file:
             for word in line.split(' '):
             
-                if word == '':
+                if word in {'', '\n'}:
                     continue
             
-                if word in SEP_OP or word in KEYWORDS: # TODO Clean this line up
+                if word in SEP_OP or word in KEYWORDS:  # TODO Clean this line up
                     evaluation = self.eval(word)
                     yield evaluation
             
                 else:
-                    word_iter = iter(word)          # Make an iterator out of the word to allow for the use of "next(iter)"
+                    word_iter = iter(word)          # Make an iter out of the word to allow for the use of "next(iter)"
                 
                     for character in word_iter:
-                        if character in {":", "%"}: # Checks if curr char is a part of a 'multicharacter' Separator/Operator
+                        if character in {":", "%"}: # Checks if curr char is part of a 'multicharacter' Operator
                             if buffer:              # Evaluate anything that might be in the buffer first
                                 evaluation = self.eval(word)
                                 if evaluation:
@@ -119,7 +120,7 @@ class Lexer:
                                 buffer = ''         # Clear buffer
                         
                             nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
-                            temp = character + nxt  #    multicharacter Separator/Operator
+                            temp = character + nxt  # multicharacter Separator/Operator
                             if temp in SEP_OP:
                                 evaluation = self.eval(temp)
                                 if evaluation:
@@ -148,11 +149,16 @@ class Lexer:
         
 
 def main():
-    '''Main program'''
+    """Main program"""
     lex = Lexer()
     in_file = open("test_code.txt")
+    print('SOURCE CODE:\n')
+    for line in in_file:
+        print(line)
+    in_file.seek(0)
+    print('\nOUTPUT:\n')
     for token in lex.tokenize(in_file):
-        print(token)
+        print("Token:  {}\t\tLexeme:  {}".format(token[0].ljust(10), token[1]))
     in_file.close()
 
 if __name__ == "__main__":
