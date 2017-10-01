@@ -5,11 +5,21 @@ import enum
 
 KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "boolean", "real"}
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
-OPERATORS = {':=', '+', '-', '*', '/', '%%', '@'}
+OPERATORS = {':=', '+', '-', '*', '/', '%%', '@', '<', '>', '/=', '>=', '<='}
 LETTERS = set(string.ascii_letters)
 SEPARATORS = {'(', ')', '{', '}', ',', ';'}
 SEP_OP = SEPARATORS.union(OPERATORS)
 DIG_LETT = DIGITS.union(LETTERS).union({".", "#"})
+
+####################################################
+###########                              ###########
+###########     SOURCE FILE GOES HERE    ###########
+###########                              ###########
+####################################################
+SOURCE_FILE = "code_spaces_tabs_newlines.txt"   # Working code with spaces and tabs and newlines
+SOURCE_FILE2 = "difficult_code_no_spaces.txt"   # Working code with missing spaces
+SOURCE_FILE3 = "broken_code.txt"                # Code with invalid identifiers, and reals
+
 
 
 class State(enum.Enum):
@@ -76,10 +86,10 @@ class Lexer:
         for char in input_string:
             if char not in self.transition:
                 print("Error: String is not a valid int, real, or identifier")
-                return -1
+                return 0
             if self.transition[char]() == -1:
                 print("Error: String is not a valid int, real, or identifier")
-                return -1
+                return 0
             
         if self.state == State.ID1 or self.state == State.ID2:
             self.state = State.START
@@ -89,22 +99,22 @@ class Lexer:
             return ("Integer", input_string)
         elif self.state == State.RL:
             self.state = State.START
-            return ("Float", input_string)
+            return ("Real", input_string)
         else:
             self.state = State.START
-            print("ERROR: '{}' is not a valid Identifier, Integer, or Float".format(input_string))
+            print("ERROR: '{}' is not a valid Identifier, Integer, or Real".format(input_string))
             return (False)
         
     def tokenize(self, in_file):
         """Iterates over a text file, generating tokens and yielding them"""
         buffer = ""
         for line in in_file:
-            for word in line.split(' '):
+            for word in line.strip().replace('\t',' ').split(' '):
             
-                if word in {'', '\n'}:
+                if word == '':
                     continue
             
-                if word in SEP_OP or word in KEYWORDS:  # TODO Clean this line up
+                if word in SEP_OP or word in KEYWORDS:
                     evaluation = self.eval(word)
                     yield evaluation
             
@@ -112,54 +122,50 @@ class Lexer:
                     word_iter = iter(word)          # Make an iter out of the word to allow for the use of "next(iter)"
                 
                     for character in word_iter:
-                        if character in {":", "%"}: # Checks if curr char is part of a 'multicharacter' Operator
+                        if character in SEP_OP.union(':'): # Checks if curr char is part of a 'multicharacter' Operator
                             if buffer:              # Evaluate anything that might be in the buffer first
-                                evaluation = self.eval(word)
+                                evaluation = self.eval(buffer)
                                 if evaluation:
                                     yield evaluation
                                 buffer = ''         # Clear buffer
                         
-                            nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
-                            temp = character + nxt  # multicharacter Separator/Operator
-                            if temp in SEP_OP:
-                                evaluation = self.eval(temp)
-                                if evaluation:
-                                    yield evaluation
-                            else:
-                                buffer = nxt
-                                print("ERROR")
-                            continue
-                    
-                        if character in SEP_OP:        # Checks if curr char is a separator or Operator
-                            if buffer:
-                                evaluation = self.eval(buffer)
-                                if evaluation:
-                                    yield evaluation
-                            evaluation = self.eval(character)
-                            yield evaluation
-                            buffer = ''
-                            continue
+                            try:
+                                nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
+                                temp = character + nxt  # multicharacter Separator/Operator
+                                if temp in SEP_OP:
+                                    evaluation = self.eval(temp)
+                                    if evaluation:
+                                        yield evaluation
+                                else:
+                                    yield self.eval(character)
+                                    buffer = nxt
+                                continue
+                            except StopIteration:
+                                evaluation = self.eval(character)
+                                yield evaluation
+                                continue
                     
                         buffer += character
                 
-                    evaluation = self.eval(buffer)
-                    if evaluation:
-                        yield evaluation
+                    if buffer:
+                        evaluation = self.eval(buffer)
+                        if evaluation:
+                            yield evaluation
                     buffer = ''
-        
 
 def main():
     """Main program"""
     lex = Lexer()
-    in_file = open("test_code.txt")
-    print('SOURCE CODE:\n')
+    in_file = open(SOURCE_FILE3)
+    print('SOURCE CODE:')
     for line in in_file:
         print(line)
     in_file.seek(0)
-    print('\nOUTPUT:\n')
+    print('\n\nOUTPUT:\n')
     for token in lex.tokenize(in_file):
         print("Token:  {}\t\tLexeme:  {}".format(token[0].ljust(10), token[1]))
     in_file.close()
 
 if __name__ == "__main__":
     main()
+
