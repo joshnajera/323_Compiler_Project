@@ -1,0 +1,58 @@
+<Rat17F>  ::=  <Opt Function Definitions>  
+                         %%  <Opt Declaration List> <Statement List>    
+
+<Opt Function Definitions> ::= <Function Definitions> | <Empty>
+
+<Function Definitions>  ::= <Function> | <Function> <Function Definitions>   
+
+<Function> ::=  @  <Identifier>  (<Opt Parameter List> )   <Opt Declaration List>  <Body>
+
+<Opt Parameter List> ::=  <Parameter List>   |  <Empty>
+
+<Parameter List>  ::=  <Parameter>  | <Parameter> , <Parameter List>
+
+<Parameter> ::=  <IDs > : <Qualifier> 
+
+<Qualifier> ::= integer   |  boolean  |  floating
+
+<Body>  ::=  {  < Statement List>  }
+
+<Opt Declaration List> ::= <Declaration List>   | <Empty>
+
+<Declaration List>  := <Declaration> ;  | <Declaration> ; <Declaration List>
+
+<Declaration> ::=  <Qualifier > <IDs>                   
+
+<IDs> ::=  <Identifier>    | <Identifier>, <IDs>
+
+<Statement List> ::=  <Statement>   | <Statement> <Statement List>
+
+<Statement> ::=  <Compound> | <Assign> | <If> |  <Return> | <Write> | <Read> | <While> 
+
+<Compound> ::= {  <Statement List>  } 
+
+<Assign> ::=   <Identifier> := <Expression> ;
+
+<If> ::=     if  ( <Condition>  ) <Statement> fi    |   
+                  if  ( <Condition>  ) <Statement>   else <Statement> fi   
+<Return> ::=  return ; |  return <Expression> ;
+
+<Write> ::=   write ( <Expression>);
+
+<Read> ::=    read ( <IDs> );
+
+<While> ::= while ( <Condition>  )  <Statement> 
+
+<Condition> ::= <Expression>  <Relop>   <Expression>
+
+<Relop> ::=   = |  /=  |   >   | <   |  =>   | <=            
+
+<Expression>  ::= <Expression> + <Term>  | <Expression>  - <Term>  | <Term>
+
+<Term>    ::=  <Term> * <Factor>  | <Term> / <Factor> |  <Factor>
+
+<Factor> ::= - <Primary>   | <Primary>
+
+<Primary> ::= <Identifier> | <Integer> | <Identifier> [<IDs>]  | 
+                       ( <Expression> ) |  <Real>  | true | false                        
+<Empty>   ::= 

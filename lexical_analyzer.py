@@ -8,7 +8,7 @@ KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
 OPERATORS = {':=', '+', '-', '*', '/', '%%', '@', '<', '>', '/=', '>=', '<='}
 LETTERS = set(string.ascii_letters)
-SEPARATORS = {'(', ')', '{', '}', ',', ';'}
+SEPARATORS = {'(', ')', '{', '}', ',', ';','[',']'}
 SEP_OP = SEPARATORS.union(OPERATORS)
 DIG_LETT = DIGITS.union(LETTERS).union({".", "#"})
 
@@ -30,10 +30,10 @@ class State(enum.Enum):
     ID2 = 2     # Identifier 2  -- Accepting state
     INT = 3     # Integer       -- Accepting state
     PER = 4     # Period
-    RL = 5      # Real Number   -- Accepting state
+    FLT = 5     # Real Number   -- Accepting state
 
 
-class Lexer:
+class Lexer(object):
     """A lexical analyzer for RAT17F"""
     def __init__(self):
         self.state = State.START
@@ -62,8 +62,8 @@ class Lexer:
         """Transition function for a digit"""
         if self.state == State.START or self.state == State.INT:
             self.state = State.INT
-        elif self.state == State.PER or self.state == State.RL:
-            self.state = State.RL
+        elif self.state == State.PER or self.state == State.FLT:
+            self.state = State.FLT
         else:
             return -1
 
@@ -98,30 +98,30 @@ class Lexer:
         elif self.state == State.INT:
             self.state = State.START
             return ("Integer", input_string)
-        elif self.state == State.RL:
+        elif self.state == State.FLT:
             self.state = State.START
             return ("Real", input_string)
         else:
             self.state = State.START
             print("ERROR: '{}' is not a valid Identifier, Integer, or Real".format(input_string))
-            return (False)
-        
+            return False
+
     def tokenize(self, in_file):
         """Iterates over a text file, generating tokens and yielding them"""
         buffer = ""
         for line in in_file:
             for word in line.strip().replace('\t',' ').split(' '):
-            
+
                 if word == '':
                     continue
-            
+
                 if word in SEP_OP or word in KEYWORDS:
                     evaluation = self.eval(word)
                     yield evaluation
-            
+
                 else:
                     word_iter = iter(word)          # Make an iter out of the word to allow for the use of "next(iter)"
-                
+
                     for character in word_iter:
                         if character in SEP_OP.union(':'): # Checks if curr char is part of a 'multicharacter' Operator
                             if buffer:              # Evaluate anything that might be in the buffer first
@@ -129,7 +129,7 @@ class Lexer:
                                 if evaluation:
                                     yield evaluation
                                 buffer = ''         # Clear buffer
-                        
+
                             try:
                                 nxt = next(word_iter)   # Combine the next character with current one to check if it is a --
                                 temp = character + nxt  # multicharacter Separator/Operator
