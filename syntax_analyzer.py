@@ -55,7 +55,7 @@ class SyntaxAnalyzer(object):
         self.next_token = lexical_analyzer.Lexer.result("token", "lexeme")
         self.lexer = lexical_analyzer.Lexer()
         self.lex = self.lexer.tokenize(in_file)
-        print(self.primary())
+        self.factor()
         in_file.close()
     
     def next_tok(self):
@@ -64,6 +64,12 @@ class SyntaxAnalyzer(object):
             return self.next_token
         except StopIteration:
             return False
+
+    def lexeme_is(self, char):
+        return self.next_token.lexeme is char
+
+    def lexeme_is_not(self, char):
+        return self.next_token.lexeme is not char
 
     def IDs(self, consume_next=True):
         """  <IDs> ::= <Identifier> | <Identifier>, <IDs>   """
@@ -77,13 +83,14 @@ class SyntaxAnalyzer(object):
             return False
 
         # Case: <Identifier>, ...
-        print("Identifier", end='')
+        # print("Identifier", end='')
         self.next_tok()
         if self.next_token.lexeme is ',':
-            print(", ", end='')
+            # print(", ", end='')
             return self.IDs()
 
         # Case: <Identifier>
+        print("<IDs>", end='')
         return True
 
     def primary(self, consume_next=True):
@@ -95,57 +102,47 @@ class SyntaxAnalyzer(object):
             self.next_tok()
 
         if self.next_token.token is "Identifier":
+            print("<Primary>", end='')
             self.next_tok()
 
+            print(self.next_token.lexeme, end='')
             if self.next_token.lexeme is not '[':
-                if not self.IDs():
-                    return False
+                return True
+            if not self.IDs():
+                return False
+            self.next_tok()
+            print(self.next_token.lexeme, end='')
+            return self.lexeme_is(']')
 
-                self.next_token()
-                return self.next_token.lexeme is ']'
+        # TODO Case: ( <Expressio> )
 
+        if self.next_token.token not in {"Float", "Integer"}:
+            if self.next_token.lexeme not in {"true", "false"}:
+                return False
 
+        print("<Primary>", end='')
+        return True
 
-        # # TODO ( <Expression> )
-        # # Case: <Identifier>
-        # if self.next_token.token == 'Identifier':
-        #     self.next_tok()
-        #
-        #     # Case: <Identifier> [<IDs>]
-        #     if self.next_token.lexeme == '[':
-        #         self.IDs()
-        #         self.next_tok()
-        #
-        #         if self.next_token.lexeme == ']':
-        #             print("Primary-- Identifier[]") if CONSOLE_DEBUG is True else None
-        #             return
-        #         else:
-        #             print("Error! Primary: Identifier[]") if CONSOLE_DEBUG is True else None
-        #             return
-        #     else:
-        #         pass
-        #     print("Primary-- Identifier") if CONSOLE_DEBUG is True else None
-        #
-        # # Case: <Real> | <primary>
-        # elif self.next_token[0] in {'Integer', 'Real'}:
-        #     print("Primary-- {}"%self.next_token[0]) if CONSOLE_DEBUG is True else None
-        #
-        # # Case: true | false
-        # elif self.next_token[1] in {'true', 'false'}:
-        #     print("Primary-- {}"%self.next_token[1]) if CONSOLE_DEBUG is True else None
 
     def factor(self, consume_next=True):
-        """"      <Factor> ::= - <Primary> | <Primary>   """
+        """"   <Factor> ::= - <Primary> | <Primary>   """
 
         # Consume next token from generator
         if consume_next:
             self.next_tok()
 
         # Case: <Primary>
-        if self.next_token[1] is not '-':
-            return self.primary()
+        if self.lexeme_is_not('-'):
+            if self.primary(consume_next=False):
+                print("<Factor>")
+                return True
+            else: return False
+
         # Case: - <Primary>
-        return self.primary(consume_next=True)
+        if self.primary():
+            print("<Factor>")
+            return True
+        else: return False
 
     # def addition(self):
     #     self.integer()
