@@ -1,4 +1,4 @@
-'''Handles Syntax Analysis'''
+"""Handles Syntax Analysis"""
 #!/usr/bin/python3
 import enum
 import lexical_analyzer
@@ -10,9 +10,11 @@ import lexical_analyzer
 #             out_f.write('{} = {}\n'.format(str(item).strip(), i))
 #         out_f.close()
 
+CONSOLE_DEBUG = True
+
 
 class Symbol(enum.Enum):
-    '''Holds the symbols for syntax analysis'''
+    """Holds the symbols for syntax analysis"""
     If = 0
     IDs = 1
     Body = 2
@@ -47,15 +49,13 @@ class Symbol(enum.Enum):
     OptFunctionDefinitions = 31
 
 
-
-
 class SyntaxAnalyzer(object):
     def __init__(self, file_name):
         in_file = open(file_name)
-        self.next_token = ''
+        self.next_token = lexical_analyzer.Lexer.result("token", "lexeme")
         self.lexer = lexical_analyzer.Lexer()
         self.lex = self.lexer.tokenize(in_file)
-        self.primary()
+        print(self.primary())
         in_file.close()
     
     def next_tok(self):
@@ -65,40 +65,87 @@ class SyntaxAnalyzer(object):
         except StopIteration:
             return False
 
+    def IDs(self, consume_next=True):
+        """  <IDs> ::= <Identifier> | <Identifier>, <IDs>   """
 
-    def IDs(self):
-        self.next_tok()
-        if self.next_token[0] == 'Identifier':
-            print(self.next_token[0], end='')
+        # Consume next token from generator ?
+        if consume_next:
             self.next_tok()
-            if self.next_token[1] == ',':
-                print(', ', end='')
-                self.IDs()
-            else:
-                print('\nIDs')
-        else:
-            print("Error! ID")
 
-    def primary(self):
-        self.next_token = next(self.lex)
-        if self.next_token[0] == 'Identifier':
-            self.next_token = next(self.lex)
-            if self.next_token[1] == '[':
-                self.IDs()
-                self.next_token = next(self.lex)
-                if self.next_token[1] == ']':
-                    print("Primary-- Identifier[]")
-                    return
-                else:
-                    print("Error! Primary: Identifier[]")
-                    return
-            else:
-                pass
-            print("Primary-- Identifier")
-        elif self.next_token[0] in {'Integer', 'Real'}:
-            print("Primary-- {}"%self.next_token[0])
-        elif self.next_token[1] in {'true', 'false'}:
-            print("Primary-- {}"%self.next_token[1])
+        # Case: Not <IDs>
+        if self.next_token.token is not "Identifier":
+            return False
+
+        # Case: <Identifier>, ...
+        print("Identifier", end='')
+        self.next_tok()
+        if self.next_token.lexeme is ',':
+            print(", ", end='')
+            return self.IDs()
+
+        # Case: <Identifier>
+        return True
+
+    def primary(self, consume_next=True):
+        """   <Primary> ::= <Identifier> | <Integer> | <Identifier> [<IDs>]
+                           | ( <Expression> ) |  <Real>  | true | false   """
+
+        # Consume next token from generator ?
+        if consume_next:
+            self.next_tok()
+
+        if self.next_token.token is "Identifier":
+            self.next_tok()
+
+            if self.next_token.lexeme is not '[':
+                if not self.IDs():
+                    return False
+
+                self.next_token()
+                return self.next_token.lexeme is ']'
+
+
+
+        # # TODO ( <Expression> )
+        # # Case: <Identifier>
+        # if self.next_token.token == 'Identifier':
+        #     self.next_tok()
+        #
+        #     # Case: <Identifier> [<IDs>]
+        #     if self.next_token.lexeme == '[':
+        #         self.IDs()
+        #         self.next_tok()
+        #
+        #         if self.next_token.lexeme == ']':
+        #             print("Primary-- Identifier[]") if CONSOLE_DEBUG is True else None
+        #             return
+        #         else:
+        #             print("Error! Primary: Identifier[]") if CONSOLE_DEBUG is True else None
+        #             return
+        #     else:
+        #         pass
+        #     print("Primary-- Identifier") if CONSOLE_DEBUG is True else None
+        #
+        # # Case: <Real> | <primary>
+        # elif self.next_token[0] in {'Integer', 'Real'}:
+        #     print("Primary-- {}"%self.next_token[0]) if CONSOLE_DEBUG is True else None
+        #
+        # # Case: true | false
+        # elif self.next_token[1] in {'true', 'false'}:
+        #     print("Primary-- {}"%self.next_token[1]) if CONSOLE_DEBUG is True else None
+
+    def factor(self, consume_next=True):
+        """"      <Factor> ::= - <Primary> | <Primary>   """
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        # Case: <Primary>
+        if self.next_token[1] is not '-':
+            return self.primary()
+        # Case: - <Primary>
+        return self.primary(consume_next=True)
 
     # def addition(self):
     #     self.integer()
@@ -135,3 +182,59 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

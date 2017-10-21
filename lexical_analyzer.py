@@ -3,8 +3,9 @@ __author__ = 'Josh'
 
 import string
 import enum
+from collections import namedtuple
 
-KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "boolean", "real"}
+KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "boolean", "real", "true", "false"}
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
 OPERATORS = {':=', '+', '-', '*', '/', '%%', '@', '<', '>', '/=', '>=', '<='}
 LETTERS = set(string.ascii_letters)
@@ -35,6 +36,8 @@ class State(enum.Enum):
 
 class Lexer(object):
     """A lexical analyzer for RAT17F"""
+    result = namedtuple('tok_lex', ['token', 'lexeme'])
+
     def __init__(self):
         self.state = State.START
         self.transition = {"#": self.pound}
@@ -78,12 +81,12 @@ class Lexer(object):
         """Iterates through each character in an input string,
             and calls corresponding transition functions for each"""
         if input_string in KEYWORDS:
-            return ("Keyword", input_string)
+            return Lexer.result("Keyword", input_string)
         elif input_string in OPERATORS:
-            return ("Operator", input_string)
+            return Lexer.result("Operator", input_string)
         elif input_string in SEPARATORS:
-            return ("Separator", input_string)
-        
+            return Lexer.result("Separator", input_string)
+
         for char in input_string:
             if char not in self.transition:
                 print("Error: String is not a valid int, real, or identifier")
@@ -94,13 +97,13 @@ class Lexer(object):
             
         if self.state == State.ID1 or self.state == State.ID2:
             self.state = State.START
-            return ("Identifier", input_string)
+            return Lexer.result("Identifier", input_string)
         elif self.state == State.INT:
             self.state = State.START
-            return ("Integer", input_string)
+            return Lexer.result("Integer", input_string)
         elif self.state == State.FLT:
             self.state = State.START
-            return ("Real", input_string)
+            return Lexer.result("Float", input_string)
         else:
             self.state = State.START
             print("ERROR: '{}' is not a valid Identifier, Integer, or Real".format(input_string))
@@ -157,7 +160,7 @@ class Lexer(object):
 def main():
     """Main program"""
     lex = Lexer()
-    in_file = open(SOURCE_FILE3)
+    in_file = open(SOURCE_FILE2)
     print('SOURCE CODE:')
     for line in in_file:
         print(line)
