@@ -9,7 +9,7 @@
 
 <Opt Parameter List> ::=  <Parameter List>   |  <Empty>
 
-<Parameter List>  ::=  <Parameter>  | <Parameter> , <Parameter List>
+<Parameter List>  ::=  <Parameter>  | <Parameter> , <Parameter List>	TODO: <param>, not-param
 
 <Parameter> ::=  <IDs > : <Qualifier> 
 
@@ -23,7 +23,7 @@
 
 <Declaration> ::=  <Qualifier > <IDs>                   
 
-<IDs> ::=  <Identifier>    | <Identifier>, <IDs>
+<IDs> ::=  <Identifier>    | <Identifier>, <Ids>  TODO: <Identifier>, not-IDs
 
 <Statement List> ::=  <Statement>   | <Statement> <Statement List>
 
@@ -55,4 +55,4 @@
 
 <Primary> ::= <Identifier> | <Integer> | <Identifier> [<IDs>]  | 
                        ( <Expression> ) |  <Real>  | true | false                        
-<Empty>   ::= ÔÅ•
+<Empty>   ::= Ô?•

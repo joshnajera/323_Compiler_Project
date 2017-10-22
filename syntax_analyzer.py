@@ -57,7 +57,8 @@ class SyntaxAnalyzer(object):
         self.lex = self.lexer.tokenize(in_file)
         self.factor()
         in_file.close()
-    
+
+    # Idea: Add check in next_tok to make sure we don't have 'extra_token_consumed' flag raised before consuming
     def next_tok(self):
         try:    
             self.next_token = next(self.lex)
@@ -114,7 +115,7 @@ class SyntaxAnalyzer(object):
             print(self.next_token.lexeme, end='')
             return self.lexeme_is(']')
 
-        # TODO Case: ( <Expressio> )
+        # TODO Case: ( <Expression> )
 
         if self.next_token.token not in {"Float", "Integer"}:
             if self.next_token.lexeme not in {"true", "false"}:
@@ -123,6 +124,44 @@ class SyntaxAnalyzer(object):
         print("<Primary>", end='')
         return True
 
+    def expression(self, consume_next=True):
+        pass
+
+    def read(self, consume_next):
+        """   <Read> ::= read ( <IDs> );   """
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("read"):
+            return False
+        self.next_tok()
+        if self.lexeme_is_not("("):
+            return False
+        if not self.IDs():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(")"):
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(";"):
+            return False
+
+        print("<Read>")
+        return True
+
+    def relop(self, consume_next=True):
+        """   <Relop> ::=   = |  /=  |   >   | <   |  =>   | <=   """
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if self.next_token.lexeme not in {'=', '/=', '>', '<', '=>', '<='}:
+            return False
+
+        print("<Relop>")
+        return True
 
     def factor(self, consume_next=True):
         """"   <Factor> ::= - <Primary> | <Primary>   """
@@ -144,7 +183,103 @@ class SyntaxAnalyzer(object):
             return True
         else: return False
 
-    # def addition(self):
+    def qualifier(self, consume_next=True):
+        """   < Qualifier >::= integer | boolean | floating   """
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if self.next_token.lexeme not in {"integer", "boolean", "floating"}:
+            return False
+
+        print("<Qualifier>")
+        return True
+
+    def parameter(self, consume_next=True):
+        """   <Parameter> ::= <IDs > : <Qualifier>   """
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if not self.IDs():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(":"):
+            return False
+        if not self.qualifier():
+            return False
+
+        print("<Parameter>")
+        return True
+
+    def parameter_list(self, consume_next=True):
+        """   <Parameter List>  ::=  <Parameter>  | <Parameter> , <Parameter List>   """
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if not self.parameter():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(","):
+            # TODO: Extra token consumed...
+            print("<Parameter List> TODO: Extra token consumed...")
+            return True
+        if not self.parameter_list():
+            return False
+
+        print("Parameter List>")
+        return True
+
+    def declaration(self, consume_next=True):
+        """   <Declaration> ::= <Qualifier > <IDs>   """
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if not self.qualifier():
+            return False
+        if not self.IDs():
+            return False
+
+        print("<Declaration>")
+        return True
+
+    def declaration_list(self, consume_next=True):
+        """   <Declaration List>  := <Declaration> ;  | <Declaration> ; <Declaration List>   """
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if not self.declaration():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(";"):
+            return False
+        if not self.declaration_list():
+            pass
+        return True
+
+    def opt_declaration_list(self, consume_next=True):
+        """<Opt Declaration List> ::= <Declaration List>  | <Empty>"""
+
+        # Consume next token from generator
+        if consume_next:
+            self.next_tok()
+
+        if not self.declaration_list():
+            pass
+        return True
+
+
+
+
+# def addition(self):
     #     self.integer()
     #     self.addition_prime()
 
@@ -165,7 +300,6 @@ class SyntaxAnalyzer(object):
     #     else:
     #         print("Error!")
     #         return False
-    
 
 def main():
     # with open('test_syntax.txt') as in_file:
@@ -174,8 +308,6 @@ def main():
     #     for token in tokens:
     #         print(token)
     mySA = SyntaxAnalyzer("test_syntax.txt")
-
-
 
 if __name__ == "__main__":
     main()
