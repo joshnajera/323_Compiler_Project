@@ -14,13 +14,14 @@ CONSOLE_DEBUG = True
 
 
 class SyntaxAnalyzer(object):
+    """   Checks syntax according to ra17f rules   """
     def __init__(self, file_name):
         in_file = open(file_name)
         self.next_token = lexical_analyzer.Lexer.result("token", "lexeme")
         self.consume = True
         self.lexer = lexical_analyzer.Lexer()
         self.lex = self.lexer.tokenize(in_file)
-        self.factor()
+        self.rat17f()
         in_file.close()
 
     # Idea: Add check in next_tok to make sure we don't have 'extra_token_consumed' flag raised before consuming
@@ -40,7 +41,7 @@ class SyntaxAnalyzer(object):
     def lexeme_is_not(self, char):
         """   Determines if the lexeme is NOT input, if not, dont consume token on next next_tok() call"""
 
-        if self.next_token.lexeme is not char:
+        if self.next_token.lexeme != char:
             self.consume = False
             return True
 
@@ -99,9 +100,11 @@ class SyntaxAnalyzer(object):
         if self.lexeme_is_not("("):
             # Cases: <Float> OR <Integer> OR "true" OR "false"
             if self.next_token.token in {"Float", "Integer"}:
+                self.consume = True
                 print("<Primary>")
                 return True
             if self.next_token.lexeme in {"true", "false"}:
+                self.consume = True
                 print("<Primary>")
                 return True
             # Case: Not primary
@@ -163,7 +166,7 @@ class SyntaxAnalyzer(object):
 
         # Case: <Primary>
         if self.lexeme_is_not('-'):
-            pass
+            self.consume = False
         # Case: - <Primary>
         if not self.primary():
             self.consume = False
@@ -209,13 +212,12 @@ class SyntaxAnalyzer(object):
             return False
         self.next_tok()
         if self.lexeme_is_not(","):
-            print("<Parameter List> TODO: Extra token consumed...")
+            print("<Parameter List>")
             return True
         if not self.parameter_list():
             self.consume = False
             return False
 
-        print("Parameter List>")
         return True
 
     def opt_parameter_list(self):
@@ -223,6 +225,7 @@ class SyntaxAnalyzer(object):
 
         if not self.parameter_list():
             self.consume = False
+        print("<Opt Parameter List>")
         return True
 
     def declaration(self):
@@ -258,6 +261,7 @@ class SyntaxAnalyzer(object):
 
         if not self.declaration_list():
             self.consume = False
+        print("<Opt Declaration List>")
         return True
 
     def term_prime(self):
@@ -266,6 +270,7 @@ class SyntaxAnalyzer(object):
 
         # Case: Epsilon
         if self.next_token.lexeme not in {"*", "/"}:
+            self.consume = False
             return True
         if not self.factor():
             self.consume = False
@@ -414,6 +419,9 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
+        print("<While>")
+        return True
+
     def _if(self):
         """   <If> ::=  if ( <Condition>  ) <Statement> fi    |
                         if ( <Condition>  ) <Statement> else <Statement> fi   """
@@ -437,9 +445,11 @@ class SyntaxAnalyzer(object):
         self.next_tok()
         if self.lexeme_is_not("else"):
             if self.lexeme_is_not("fi"):
+                print("Error")
                 return False
         # Case: if ( <Condition>  ) <Statement> fi
         if self.lexeme_is_not("else"):
+            print("<If>")
             return True
         if not self.statement():
             self.consume = False
@@ -455,18 +465,25 @@ class SyntaxAnalyzer(object):
         """   <Statement> ::=  <Compound> | <Assign> | <If> |  <Return> | <Write> | <Read> | <While>   """
 
         if self.assign():
+            print("<Statement>")
             return True
         if self._if():
+            print("<Statement>")
             return True
         if self._return():
+            print("<Statement>")
             return True
         if self.write():
+            print("<Statement>")
             return True
         if self.read():
+            print("<Statement>")
             return True
         if self._while():
+            print("<Statement>")
             return True
         if self.compound():
+            print("<Statement>")
             return True
 
         self.consume = False
@@ -480,6 +497,7 @@ class SyntaxAnalyzer(object):
             return False
         if not self.statement_list():
             self.consume = False
+            print("<Statement List>")
         return True
 
     def compound(self):
@@ -574,6 +592,9 @@ class SyntaxAnalyzer(object):
         if not self.statement_list():
             self.consume = False
             return False
+
+        print("<Rat17f>")
+        return True
 
 
 def main():

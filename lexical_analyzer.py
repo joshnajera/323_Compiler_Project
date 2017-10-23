@@ -9,7 +9,7 @@ KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
 OPERATORS = {':=', '+', '-', '*', '/', '%%', '@', '<', '>', '/=', '>=', '<='}
 LETTERS = set(string.ascii_letters)
-SEPARATORS = {'(', ')', '{', '}', ',', ';','[',']'}
+SEPARATORS = {'(', ')', '{', '}', ',', ';','[',']',':'}
 SEP_OP = SEPARATORS.union(OPERATORS)
 DIG_LETT = DIGITS.union(LETTERS).union({".", "#"})
 
@@ -89,10 +89,10 @@ class Lexer(object):
 
         for char in input_string:
             if char not in self.transition:
-                print("Error: String is not a valid int, real, or identifier")
+                print("Error: char not in transition")
                 return 0
             if self.transition[char]() == -1:
-                print("Error: String is not a valid int, real, or identifier")
+                print("Error: Bad transition")
                 return 0
             
         if self.state == State.ID1 or self.state == State.ID2:

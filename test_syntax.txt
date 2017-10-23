@@ -1,1 +1,4 @@
--22
+@ raggle ( as : integer ) integer asd,sdf; { a := 5; }
+%%
+boolean raggle,fraggle
+a := 2;
