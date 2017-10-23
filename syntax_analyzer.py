@@ -13,46 +13,11 @@ import lexical_analyzer
 CONSOLE_DEBUG = True
 
 
-class Symbol(enum.Enum):
-    """Holds the symbols for syntax analysis"""
-    If = 0
-    IDs = 1
-    Body = 2
-    Read = 3
-    Term = 4
-    Real = 5
-    Empty = 6
-    Write = 7
-    While = 8
-    Relop = 9
-    Rat17F = 10
-    Return = 11
-    Assign = 12
-    Factor = 13
-    Primary = 14
-    Integer = 15
-    Function = 16
-    Compound = 17
-    Parameter = 18
-    Qualifier = 19
-    Statement = 20
-    Condition = 21
-    Identifier = 22
-    Expression = 23
-    Declaration = 24
-    StatementList = 25
-    ParameterList = 26
-    DeclarationList = 27
-    OptParameterList = 28
-    OptDeclarationList = 29
-    FunctionDefinitions = 30
-    OptFunctionDefinitions = 31
-
-
 class SyntaxAnalyzer(object):
     def __init__(self, file_name):
         in_file = open(file_name)
         self.next_token = lexical_analyzer.Lexer.result("token", "lexeme")
+        self.consume = True
         self.lexer = lexical_analyzer.Lexer()
         self.lex = self.lexer.tokenize(in_file)
         self.factor()
@@ -60,7 +25,13 @@ class SyntaxAnalyzer(object):
 
     # Idea: Add check in next_tok to make sure we don't have 'extra_token_consumed' flag raised before consuming
     def next_tok(self):
-        try:    
+        """Fetches next token/lexeme pair, if allowed"""
+
+        if not self.consume:
+            self.consume = True
+            return
+
+        try:
             self.next_token = next(self.lex)
             return self.next_token
         except StopIteration:
@@ -94,6 +65,7 @@ class SyntaxAnalyzer(object):
         print("<IDs>", end='')
         return True
 
+    # TODO Finish primary
     def primary(self, consume_next=True):
         """   <Primary> ::= <Identifier> | <Integer> | <Identifier> [<IDs>]
                            | ( <Expression> ) |  <Real>  | true | false   """
@@ -123,9 +95,6 @@ class SyntaxAnalyzer(object):
 
         print("<Primary>", end='')
         return True
-
-    def expression(self, consume_next=True):
-        pass
 
     def read(self, consume_next):
         """   <Read> ::= read ( <IDs> );   """
@@ -234,6 +203,13 @@ class SyntaxAnalyzer(object):
         print("Parameter List>")
         return True
 
+    def opt_parameter_list(self, consume_next=True):
+        """   <Opt Parameter List> ::= <Parameter List>  |  <Empty>   """
+
+        if not self.parameter_list(consume_next):
+            pass
+        return True
+
     def declaration(self, consume_next=True):
         """   <Declaration> ::= <Qualifier > <IDs>   """
 
@@ -276,30 +252,282 @@ class SyntaxAnalyzer(object):
             pass
         return True
 
+    def term_prime(self, consume_next=True):
 
+        if consume_next:
+            self.next_tok()
 
+        # Case: Epsilon
+        if self.next_token.lexeme not in {"*", "/"}:
+            return True
+        if not self.factor():
+            return False
+        return self.term_prime()
 
-# def addition(self):
-    #     self.integer()
-    #     self.addition_prime()
+    def term(self, consume_next=True):
 
-    # def addition_prime(self):
-    #     self.next_token = next(self.lex)
-    #     if self.next_token[1] in {'+', '-'}:
-    #         print("Operator Accepted")
-    #         self.integer()
-    #         self.addition_prime()
-    #     else:
-    #         pass
+        if not self.factor(consume_next):
+            return False
+        return self.term_prime()
 
-    # def integer(self):
-    #     self.next_token = next(self.lex)
-    #     if self.next_token[0] == 'Integer':
-    #         print("Integer Accepted")
-    #         return True
-    #     else:
-    #         print("Error!")
-    #         return False
+    def expression_prime(self, consume_next=True):
+
+        if consume_next:
+            self.next_tok()
+
+        # Case: Epsilon
+        if self.next_token.lexeme not in {"+", "-"}:
+            return True
+        if not self.term():
+            return False
+        return self.expression_prime()
+
+    def expression(self, consume_next=True):
+
+        if not self.term(consume_next):
+            return False
+        return self.expression_prime()
+
+    def condition(self, consume_next=True):
+        """   <Condition> ::= <Expression> <Relop> <Expression>   """
+
+        if not self.expression(consume_next):
+            return False
+        if not self.relop():
+            return False
+        if not self.expression():
+            return False
+
+        print("<Condition>")
+        return True
+
+    def write(self, consume_next=True):
+        """   <Write> ::=   write ( <Expression>);   """
+
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("write"):
+            return False
+        self.next_tok()
+        if self.lexeme_is_not("("):
+            return False
+        if not self.expression():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(")"):
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(";"):
+            return False
+
+        print("<Write>")
+        return True
+
+    def assign(self, consume_next=True):
+        """   <Assign> ::= <Identifier> := <Expression> ;   """
+
+        if consume_next:
+            self.next_tok()
+
+        if self.next_token.token is not "Identifier":
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(":="):
+            return False
+        if not self.expression():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(";"):
+            return False
+
+        print("<Assign>")
+        return True
+
+    def _return(self, consume_next=True):
+        """   <Return> ::=  return ; | return <Expression> ;   """
+
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("return"):
+            return False
+        if self.expression():
+            self.next_tok()
+        if self.lexeme_is_not(";"):
+                return False
+
+        print("<Return>")
+        return True
+
+    def _while(self, consume_next=True):
+        """   <While> ::= while ( <Condition> ) <Statement>    """
+
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("while"):
+            return False
+        self.next_tok()
+        if self.lexeme_is_not("("):
+            return False
+        if not self.condition():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(")"):
+            return False
+        if not self.statement():
+            return False
+
+    def _if(self, consume_next=True):
+        """   <If> ::=  if ( <Condition>  ) <Statement> fi    |
+                        if ( <Condition>  ) <Statement> else <Statement> fi   """
+
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("if"):
+            return False
+        self.next_tok()
+        if self.lexeme_is_not("("):
+            return False
+        if not self.condition():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not(")"):
+            return False
+        if not self.statement():
+            return False
+        self.next_tok()
+        if self.lexeme_is("else"):
+            if not self.statement():
+                return False
+        self.next_tok()
+        if self.lexeme_is_not("fi"):
+            return False
+
+        print("<If>")
+        return True
+
+    def statement(self, consume_next=True):
+        """   <Statement> ::=  <Compound> | <Assign> | <If> |  <Return> | <Write> | <Read> | <While>   """
+
+        if self.assign(consume_next):
+            return True
+        if self._if(False):
+            return True
+        if self._return(False):
+            return True
+        if self.write(False):
+            return True
+        if self.read(False):
+            return True
+        if self._while(False):
+            return True
+        if self.compound(False):
+            return True
+
+        return False
+
+    def statement_list(self, consume_next=True):
+        """   <Statement List> ::= <Statement>  |  <Statement> <Statement List>   """
+
+        if not self.statement(consume_next):
+            return False
+        if not self.statement_list():
+            pass
+        return True
+
+    def compound(self, consume_next=True):
+        """   <Compound> ::= { <Statement List> }   """
+
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("{"):
+            return False
+        if not self.statement_list():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not("}"):
+            return False
+
+        print("<Compound>")
+        return True
+
+    def body(self, consume_next=True):
+        """   <Body> ::= { < Statement List> }   """
+
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("{"):
+            return False
+        if not self.statement_list():
+            return False
+        self.next_tok()
+        if self.lexeme_is_not("}"):
+            return False
+
+        print("<Body>")
+        return True
+
+    def function(self, consume_next=True):
+        """<Function> ::=  @  <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>"""
+
+        if consume_next:
+            self.next_tok()
+
+        if self.lexeme_is_not("@"):
+            return False
+        self.next_tok()
+        if self.next_token.token is not "Identifier":
+            return False
+        self.next_tok()
+        if self.lexeme_is_not("("):
+            return False
+        if self.opt_parameter_list():
+            pass
+        self.next_tok() # Del?
+        if self.lexeme_is_not(")"):
+            return False
+        if self.opt_declaration_list():
+            pass
+        if not self.body():
+            return False
+
+        print("<Function>")
+        return True
+
+    def function_definitions(self, consume_next=True):
+        """   <Function Definitions>  ::= <Function> | <Function> <Function Definitions>    """
+
+        if not self.function(consume_next):
+            return False
+        if not self.function_definitions():
+            pass
+        return True
+
+    def opt_function_definitions(self, consume_next=True):
+        """   <Opt Function Definitions> ::= <Function Definitions> | <Empty>   """
+
+        if not self.function_definitions(consume_next):
+            pass
+        return True
+
+    def rat17f(self):
+        """   <Rat17F>  ::=  <Opt Function Definitions>
+                         %%  <Opt Declaration List> <Statement List>    """
+        if not self.opt_function_definitions():
+            pass
+        self.next_tok()
+        if self.lexeme_is_not("%%"):
+            return False
+        if not self.opt_declaration_list():
+            pass
+        if not self.statement_list():
+            return False
+
 
 def main():
     # with open('test_syntax.txt') as in_file:
@@ -309,61 +537,6 @@ def main():
     #         print(token)
     mySA = SyntaxAnalyzer("test_syntax.txt")
 
+
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
