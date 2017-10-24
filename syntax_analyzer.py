@@ -34,6 +34,8 @@ class SyntaxAnalyzer(object):
 
         try:
             self.next_token = next(self.lex)
+            print("Token: {}".format(self.next_token.token.ljust(14)),end='')
+            print("Lexeme: {}".format(self.next_token.lexeme))
             return self.next_token
         except StopIteration:
             return False
@@ -84,7 +86,7 @@ class SyntaxAnalyzer(object):
 
             # Case: <Identifier>
             if self.lexeme_is_not('['):
-                print("<Primary>")
+                print("<Primary> => <Identifier>")
                 return True
             if not self.IDs():
                 self.consume = False
@@ -94,18 +96,18 @@ class SyntaxAnalyzer(object):
                 return False
 
             # Case: <Identifier>[<IDs>]
-            print("<Primary>")
+            print("<Primary> => <Identifier> [<IDs>]")
             return True
 
         if self.lexeme_is_not("("):
             # Cases: <Float> OR <Integer> OR "true" OR "false"
             if self.next_token.token in {"Float", "Integer"}:
                 self.consume = True
-                print("<Primary>")
+                print("<Primary> => {}".format(self.next_token.token))
                 return True
             if self.next_token.lexeme in {"true", "false"}:
                 self.consume = True
-                print("<Primary>")
+                print("<Primary> => {}".format(self.next_token.lexeme))
                 return True
             # Case: Not primary
             self.consume = False
@@ -119,7 +121,7 @@ class SyntaxAnalyzer(object):
             return False
 
         # Case: ( <Expression> )
-        print("<Primary>")
+        print("<Primary> => ( <Expression> )")
         return True
 
     def read(self):
@@ -142,7 +144,7 @@ class SyntaxAnalyzer(object):
         if self.lexeme_is_not(";"):
             return False
 
-        print("<Read>")
+        print("<Read> => read ( <IDs> );")
         return True
 
     def relop(self):
@@ -164,15 +166,20 @@ class SyntaxAnalyzer(object):
         # Consume next token from generator
         self.next_tok()
 
+        neg = False
         # Case: <Primary>
         if self.lexeme_is_not('-'):
             self.consume = False
+            neg = True
         # Case: - <Primary>
         if not self.primary():
             self.consume = False
             return False
 
-        print("<Factor>")
+        print("<Factor> => ", end='')
+        if neg:
+            print("-", end='')
+        print("<Primary>")
         return True
 
     def qualifier(self):
@@ -185,7 +192,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Qualifier>")
+        print("<Qualifier> => {}".format(self.next_token.lexeme))
         return True
 
     def parameter(self):
@@ -201,7 +208,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Parameter>")
+        print("<Parameter> => <IDs> : <Qualifier>")
         return True
 
     def parameter_list(self):
@@ -212,7 +219,7 @@ class SyntaxAnalyzer(object):
             return False
         self.next_tok()
         if self.lexeme_is_not(","):
-            print("<Parameter List>")
+            print("<Parameter List> => <Parameter> | <Parameter>, <Parameter List>")
             return True
         if not self.parameter_list():
             self.consume = False
@@ -225,7 +232,9 @@ class SyntaxAnalyzer(object):
 
         if not self.parameter_list():
             self.consume = False
-        print("<Opt Parameter List>")
+            print("<Opt Parameter List> => Epsilon")
+        else:
+            print("<Opt Parameter List> => <Parameter List>")
         return True
 
     def declaration(self):
@@ -238,7 +247,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Declaration>")
+        print("<Declaration> => <Qualifier> <IDs>")
         return True
 
     def declaration_list(self):
@@ -253,7 +262,7 @@ class SyntaxAnalyzer(object):
         if not self.declaration_list():
             self.consume = False
 
-        print("<Declaration List>")
+        print("<Declaration List> => <Declaration>; | <Declaration>; <Declaration List>")
         return True
 
     def opt_declaration_list(self):
@@ -261,7 +270,9 @@ class SyntaxAnalyzer(object):
 
         if not self.declaration_list():
             self.consume = False
-        print("<Opt Declaration List>")
+            print("<Opt Declaration List> => Epsilon")
+        else:
+            print("<Opt Declaration List> => <Declaration List>")
         return True
 
     def term_prime(self):
