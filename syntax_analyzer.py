@@ -34,11 +34,13 @@ class SyntaxAnalyzer(object):
 
         try:
             self.next_token = next(self.lex)
-            print("Token: {}".format(self.next_token.token.ljust(14)),end='')
-            print("Lexeme: {}".format(self.next_token.lexeme))
             return self.next_token
         except StopIteration:
             return False
+    
+    def print_token(self):
+        print("Token: {}".format(self.next_token.token.ljust(18)),end='')
+        print("Lexeme: {}".format(self.next_token.lexeme))
 
     def lexeme_is_not(self, char):
         """   Determines if the lexeme is NOT input, if not, dont consume token on next next_tok() call"""
@@ -60,12 +62,14 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
+        self.print_token()
         self.next_tok()
         # Case: <Identifier>
         if self.lexeme_is_not(","):
-            print("<IDs>")
+            print("\t<IDs>")
             return True
 
+        self.print_token()
         # Case: <Identifier>, not <IDs>
         if not self.IDs():
             self.consume = False
@@ -82,46 +86,53 @@ class SyntaxAnalyzer(object):
         self.next_tok()
 
         if self.next_token.token is "Identifier":
+            self.print_token()
             self.next_tok()
 
             # Case: <Identifier>
             if self.lexeme_is_not('['):
-                print("<Primary> => <Identifier>")
+                print("\t<Primary>".ljust(23)+ "=> <Identifier>")
                 return True
+            self.print_token()
             if not self.IDs():
                 self.consume = False
                 return False
             self.next_tok()
             if self.lexeme_is_not(']'):
                 return False
+            self.print_token()
 
             # Case: <Identifier>[<IDs>]
-            print("<Primary> => <Identifier> [<IDs>]")
+            print("\t<Primary>".ljust(23)+"=> <Identifier> [<IDs>]")
             return True
 
         if self.lexeme_is_not("("):
             # Cases: <Float> OR <Integer> OR "true" OR "false"
             if self.next_token.token in {"Float", "Integer"}:
+                self.print_token()
                 self.consume = True
-                print("<Primary> => {}".format(self.next_token.token))
+                print("\t<Primary>".ljust(23)+"=> {}".format(self.next_token.token))
                 return True
             if self.next_token.lexeme in {"true", "false"}:
+                self.print_token()
                 self.consume = True
-                print("<Primary> => {}".format(self.next_token.lexeme))
+                print("\t<Primary>".ljust(23)+"=> {}".format(self.next_token.lexeme))
                 return True
             # Case: Not primary
             self.consume = False
             return False
 
+        self.print_token()
         if not self.expression():
             self.consume =False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
             return False
+        self.print_token()
 
         # Case: ( <Expression> )
-        print("<Primary> => ( <Expression> )")
+        print("\t<Primary>".ljust(23)+"=> ( <Expression> )")
         return True
 
     def read(self):
@@ -132,19 +143,23 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("read"):
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
             return False
+        self.print_token()
         if not self.IDs():
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not(";"):
             return False
+        self.print_token()
 
-        print("<Read> => read ( <IDs> );")
+        print("\t<Read>".ljust(23)+"=> read ( <IDs> );")
         return True
 
     def relop(self):
@@ -157,7 +172,8 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Relop>")
+        self.print_token()
+        print("\t<Relop>")
         return True
 
     def factor(self):
@@ -170,13 +186,16 @@ class SyntaxAnalyzer(object):
         # Case: <Primary>
         if self.lexeme_is_not('-'):
             self.consume = False
+        else:
             neg = True
+            self.print_token()
+
         # Case: - <Primary>
         if not self.primary():
             self.consume = False
             return False
 
-        print("<Factor> => ", end='')
+        print("\t<Factor>".ljust(23)+"=> ", end='')
         if neg:
             print("-", end='')
         print("<Primary>")
@@ -192,7 +211,8 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Qualifier> => {}".format(self.next_token.lexeme))
+        self.print_token()
+        print("\t<Qualifier>".ljust(23)+"=> {}".format(self.next_token.lexeme))
         return True
 
     def parameter(self):
@@ -204,11 +224,12 @@ class SyntaxAnalyzer(object):
         self.next_tok()
         if self.lexeme_is_not(":"):
             return False
+        self.print_token()
         if not self.qualifier():
             self.consume = False
             return False
 
-        print("<Parameter> => <IDs> : <Qualifier>")
+        print("\t<Parameter>".ljust(23)+"=> <IDs> : <Qualifier>")
         return True
 
     def parameter_list(self):
@@ -219,8 +240,9 @@ class SyntaxAnalyzer(object):
             return False
         self.next_tok()
         if self.lexeme_is_not(","):
-            print("<Parameter List> => <Parameter> | <Parameter>, <Parameter List>")
+            print("\t<Parameter List>".ljust(23)+"=> <Parameter> | <Parameter>, <Parameter List>")
             return True
+        self.print_token()
         if not self.parameter_list():
             self.consume = False
             return False
@@ -232,9 +254,9 @@ class SyntaxAnalyzer(object):
 
         if not self.parameter_list():
             self.consume = False
-            print("<Opt Parameter List> => Epsilon")
+            print("\t<Opt Parameter List>".ljust(23)+"=> <Empty>")
         else:
-            print("<Opt Parameter List> => <Parameter List>")
+            print("\t<Opt Parameter List>".ljust(23)+"=> <Parameter List>")
         return True
 
     def declaration(self):
@@ -247,7 +269,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Declaration> => <Qualifier> <IDs>")
+        print("\t<Declaration>".ljust(23)+"=> <Qualifier> <IDs>")
         return True
 
     def declaration_list(self):
@@ -259,10 +281,11 @@ class SyntaxAnalyzer(object):
         self.next_tok()
         if self.lexeme_is_not(";"):
             return False
+        self.print_token()
         if not self.declaration_list():
             self.consume = False
 
-        print("<Declaration List> => <Declaration>; | <Declaration>; <Declaration List>")
+        print("\t<Declaration List>".ljust(23)+"=> <Declaration>; | <Declaration>; <Declaration List>")
         return True
 
     def opt_declaration_list(self):
@@ -270,9 +293,9 @@ class SyntaxAnalyzer(object):
 
         if not self.declaration_list():
             self.consume = False
-            print("<Opt Declaration List> => Epsilon")
+            print("\t<Opt Declaration List>".ljust(23)+"=> <Empty>")
         else:
-            print("<Opt Declaration List> => <Declaration List>")
+            print("\t<Opt Declaration List>".ljust(23)+"=> <Declaration List>")
         return True
 
     def term_prime(self):
@@ -283,6 +306,7 @@ class SyntaxAnalyzer(object):
         if self.next_token.lexeme not in {"*", "/"}:
             self.consume = False
             return True
+        self.print_token()
         if not self.factor():
             self.consume = False
             return False
@@ -301,7 +325,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Term>")
+        print("\t<Term>")
         return True
 
     def expression_prime(self):
@@ -312,6 +336,7 @@ class SyntaxAnalyzer(object):
         if self.next_token.lexeme not in {"+", "-"}:
             self.consume = False
             return True
+        self.print_token()
         if not self.term():
             self.consume = False
             return False
@@ -331,7 +356,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Expression>")
+        print("\t<Expression>")
         return True
 
     def condition(self):
@@ -347,7 +372,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("<Condition>")
+        print("\t<Condition>".ljust(23)+"=> <Expression> <Relop> <Expression>")
         return True
 
     def write(self):
@@ -357,20 +382,24 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("write"):
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
             return False
+        self.print_token()
         if not self.expression():
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not(";"):
             return False
+        self.print_token()
 
-        print("<Write>")
+        print("\t<Write>".ljust(23)+"=> write ( <Expression>);")
         return True
 
     def assign(self):
@@ -381,33 +410,44 @@ class SyntaxAnalyzer(object):
         if self.next_token.token is not "Identifier":
             self.consume = False
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not(":="):
             return False
+        self.print_token()
         if not self.expression():
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(";"):
             return False
+        self.print_token()
 
-        print("<Assign>")
+        print("\t<Assign>".ljust(23)+"=> <Identifier> := <Expression> ;")
         return True
 
     def _return(self):
         """   <Return> ::=  return ; | return <Expression> ;   """
 
+        with_expression = True
         self.next_tok()
 
         if self.lexeme_is_not("return"):
             return False
-        if self.expression():
+        self.print_token()
+        if not self.expression():
             self.consume = False
-            self.next_tok()
+            with_expression = False
+
+        self.next_tok()
         if self.lexeme_is_not(";"):
             return False
+        self.print_token()
 
-        print("<Return>")
+        if not with_expression:
+            print("\t<Return>".ljust(23)+"=> return ;")
+        else:
+            print("\t<Return>".ljust(23)+"=> return <Expression> ;")
         return True
 
     def _while(self):
@@ -417,20 +457,23 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("while"):
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
             return False
+        self.print_token()
         if not self.condition():
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
             return False
+        self.print_token()
         if not self.statement():
             self.consume = False
             return False
 
-        print("<While>")
+        print("\t<While>".ljust(23)+"=> while ( <Condition> ) <Statement>")
         return True
 
     def _if(self):
@@ -441,15 +484,18 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("if"):
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
             return False
+        self.print_token()
         if not self.condition():
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
             return False
+        self.print_token()
         if not self.statement():
             self.consume = False
             return False
@@ -458,9 +504,11 @@ class SyntaxAnalyzer(object):
             if self.lexeme_is_not("fi"):
                 print("Error")
                 return False
+            print("\t<If>".ljust(23)+"=> if ( <Condition>  ) <Statement> fi")
         # Case: if ( <Condition>  ) <Statement> fi
+        self.print_token()
         if self.lexeme_is_not("else"):
-            print("<If>")
+            print("\t<If>")
             return True
         if not self.statement():
             self.consume = False
@@ -468,33 +516,34 @@ class SyntaxAnalyzer(object):
         self.next_tok()
         if self.lexeme_is_not("fi"):
             return False
+        self.print_token()
 
-        print("<If>")
+        print("\t<If>".ljust(23)+"=> if ( <Condition>  ) <Statement> else <Statement> fi")
         return True
 
     def statement(self):
         """   <Statement> ::=  <Compound> | <Assign> | <If> |  <Return> | <Write> | <Read> | <While>   """
 
         if self.assign():
-            print("<Statement>")
+            print("\t<Statement>".ljust(23)+"=> <Assign>")
             return True
         if self._if():
-            print("<Statement>")
+            print("\t<Statement>".ljust(23)+"=> <If>")
             return True
         if self._return():
-            print("<Statement>")
+            print("\t<Statement>".ljust(23)+"=> <Return>")
             return True
         if self.write():
-            print("<Statement>")
+            print("\t<Statement>".ljust(23)+"=> <Write>")
             return True
         if self.read():
-            print("<Statement>")
+            print("\t<Statement>".ljust(23)+"=> <Read>")
             return True
         if self._while():
-            print("<Statement>")
+            print("\t<Statement>".ljust(23)+"=> <While>")
             return True
         if self.compound():
-            print("<Statement>")
+            print("\t<Statement>".ljust(23)+"=> <Compound>")
             return True
 
         self.consume = False
@@ -508,7 +557,7 @@ class SyntaxAnalyzer(object):
             return False
         if not self.statement_list():
             self.consume = False
-            print("<Statement List>")
+            print("\t<Statement List>".ljust(23)+"=> <Statement>  |  <Statement> <Statement List>")
         return True
 
     def compound(self):
@@ -518,14 +567,16 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("{"):
             return False
+        self.print_token()
         if not self.statement_list():
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("}"):
             return False
+        self.print_token()
 
-        print("<Compound>")
+        print("\t<Compound>".ljust(23)+"=> { <Statement List> }")
         return True
 
     def body(self):
@@ -535,14 +586,16 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("{"):
             return False
+        self.print_token()
         if not self.statement_list():
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("}"):
             return False
+        self.print_token()
 
-        print("<Body>")
+        print("\t<Body>".ljust(23)+"=> { <Statements List> }")
         return True
 
     def function(self):
@@ -552,25 +605,29 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("@"):
             return False
+        self.print_token()
         self.next_tok()
         if self.next_token.token is not "Identifier":
             self.consume = False
             return False
+        self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
             return False
+        self.print_token()
         if self.opt_parameter_list():
             self.consume = False
         self.next_tok()
         if self.lexeme_is_not(")"):
             return False
+        self.print_token()
         if self.opt_declaration_list():
             self.consume = False
         if not self.body():
             self.consume = False
             return False
 
-        print("<Function>")
+        print("\t<Function>".ljust(23)+"=> @ <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>")
         return True
 
     def function_definitions(self):
@@ -581,6 +638,7 @@ class SyntaxAnalyzer(object):
             return False
         if not self.function_definitions():
             self.consume = False
+        print("\t<Function Definitions>".ljust(23)+"=> <Function> | <Function> <Function Definitions>")
         return True
 
     def opt_function_definitions(self):
@@ -588,6 +646,9 @@ class SyntaxAnalyzer(object):
 
         if not self.function_definitions():
             self.consume = False
+            print("\t<Opt Function Definitions>".ljust(23)+"=> <Empty>")
+        else:
+            print("\t<Opt Function Definitions>".ljust(23)+"=> <Function Definitions>")
         return True
 
     def rat17f(self):
@@ -598,13 +659,14 @@ class SyntaxAnalyzer(object):
         self.next_tok()
         if self.lexeme_is_not("%%"):
             return False
+        self.print_token()
         if not self.opt_declaration_list():
             self.consume = False
         if not self.statement_list():
             self.consume = False
             return False
 
-        print("<Rat17f>")
+        print("\t<Rat17f>".ljust(23)+"=> <Opt Function Definitions> %% <Opt Declaration List> <Statement List>")
         return True
 
 
