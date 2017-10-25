@@ -10,12 +10,11 @@ import lexical_analyzer
 #             out_f.write('{} = {}\n'.format(str(item).strip(), i))
 #         out_f.close()
 
-CONSOLE_DEBUG = True
-
 
 class SyntaxAnalyzer(object):
     """   Checks syntax according to ra17f rules   """
-    def __init__(self, file_name):
+    def __init__(self, file_name, CONSOLE_DEBUG):
+        self.CONSOLE_DEBUG = CONSOLE_DEBUG
         in_file = open(file_name)
         self.next_token = lexical_analyzer.Lexer.result("token", "lexeme")
         self.consume = True
@@ -59,6 +58,7 @@ class SyntaxAnalyzer(object):
 
         # Case: Not <IDs>
         if self.next_token.token is not "Identifier":
+            print("ERROR: In IDs(), Expected <Identifier> ")
             self.consume = False
             return False
 
@@ -95,10 +95,12 @@ class SyntaxAnalyzer(object):
                 return True
             self.print_token()
             if not self.IDs():
+                print("ERROR: In primary(), Expected <IDs> ")
                 self.consume = False
                 return False
             self.next_tok()
             if self.lexeme_is_not(']'):
+                print("ERROR: In primary(), Expected ']' ")
                 return False
             self.print_token()
 
@@ -119,15 +121,18 @@ class SyntaxAnalyzer(object):
                 print("\t<Primary>".ljust(23)+"=> {}".format(self.next_token.lexeme))
                 return True
             # Case: Not primary
+            print("ERROR: In primary(), Expected one of the following...\n<Identifier> OR <Integer> OR <Identifier> [<IDs>] OR ( <Expression> ) OR  <Real>  OR true OR false")
             self.consume = False
             return False
 
         self.print_token()
         if not self.expression():
+            print("ERROR: In primary(), Expected <Expression>")
             self.consume =False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
+            print("ERROR: In primary(), Expected ')'")
             return False
         self.print_token()
 
@@ -146,16 +151,20 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
+            print("ERROR: In read(), Expected '('")
             return False
         self.print_token()
         if not self.IDs():
+            print("ERROR: In read(), Expected <IDs>")
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
+            print("ERROR: In read(), Expected ')'")
             return False
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not(";"):
+            print("ERROR: In read(), Expected ';'")
             return False
         self.print_token()
 
@@ -169,6 +178,7 @@ class SyntaxAnalyzer(object):
         self.next_tok()
 
         if self.next_token.lexeme not in {'=', '/=', '>', '<', '=>', '<='}:
+            print("ERROR: In relop(), Expected relational operator ('=', '/=', '>', '<', '=>', '<=')")
             self.consume = False
             return False
 
@@ -192,6 +202,7 @@ class SyntaxAnalyzer(object):
 
         # Case: - <Primary>
         if not self.primary():
+            print("ERROR: In factor(), Expected <Primary>")
             self.consume = False
             return False
 
@@ -219,13 +230,16 @@ class SyntaxAnalyzer(object):
         """   <Parameter> ::= <IDs > : <Qualifier>   """
 
         if not self.IDs():
+            print("ERROR: In parameter(), Expected <IDs>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(":"):
+            print("ERROR: In parameter(), Expected ':'")
             return False
         self.print_token()
         if not self.qualifier():
+            print("ERROR: In paramerer(), Expected <Qualifier>")
             self.consume = False
             return False
 
@@ -236,6 +250,7 @@ class SyntaxAnalyzer(object):
         """   <Parameter List>  ::=  <Parameter>  | <Parameter> , <Parameter List>   """
 
         if not self.parameter():
+            print("ERROR: In parameter_list(), Expected <Parameter>")
             self.consume = False
             return False
         self.next_tok()
@@ -266,6 +281,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
         if not self.IDs():
+            print("ERROR: In declaration(), Expected <IDs>")
             self.consume = False
             return False
 
@@ -280,6 +296,7 @@ class SyntaxAnalyzer(object):
             return False
         self.next_tok()
         if self.lexeme_is_not(";"):
+            print("ERROR: In declaration_list(), Expected ';'")
             return False
         self.print_token()
         if not self.declaration_list():
@@ -308,6 +325,7 @@ class SyntaxAnalyzer(object):
             return True
         self.print_token()
         if not self.factor():
+            print("ERROR: In term_prime(), Expected <Factor>")
             self.consume = False
             return False
         if not self.term_prime():
@@ -319,6 +337,7 @@ class SyntaxAnalyzer(object):
         """   <Term> ::=  <Term> * <Factor>  | <Term> / <Factor> |  <Factor>   """
 
         if not self.factor():
+            print("ERROR: In term(), Expected <Factor>")
             self.consume = False
             return False
         if not self.term_prime():
@@ -338,6 +357,7 @@ class SyntaxAnalyzer(object):
             return True
         self.print_token()
         if not self.term():
+            print("ERROR: In expression_prime(), Expected <Term> ")
             self.consume = False
             return False
         if not self.expression_prime():
@@ -350,6 +370,7 @@ class SyntaxAnalyzer(object):
         """   <Expression>  ::= <Expression> + <Term>  | <Expression>  - <Term>  | <Term>   """
 
         if not self.term():
+            print("ERROR: In expression(), Expected <Term>")
             self.consume = False
             return False
         if not self.expression_prime():
@@ -363,12 +384,15 @@ class SyntaxAnalyzer(object):
         """   <Condition> ::= <Expression> <Relop> <Expression>   """
 
         if not self.expression():
+            print("ERROR: In condition(), Expected <Expression>")
             self.consume = False
             return False
         if not self.relop():
+            print("ERROR: In condition(), Expected <Relop>")
             self.consume = False
             return False
         if not self.expression():
+            print("ERROR: In condition(), Expected <Expression>")
             self.consume = False
             return False
 
@@ -385,17 +409,21 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
+            print("ERROR: In write(), Expected '('")
             return False
         self.print_token()
         if not self.expression():
+            print("ERROR: In write(), Expected <Expression>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
+            print("ERROR: In write(), Expected ')'")
             return False
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not(";"):
+            print("ERROR: In write(), Expected ';'")
             return False
         self.print_token()
 
@@ -413,13 +441,16 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not(":="):
+            print("ERROR: In assign(), Expected ':='")
             return False
         self.print_token()
         if not self.expression():
+            print("ERROR: In assign(), Expected <Expression>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(";"):
+            print("ERROR: In assign(), Expected ';'")
             return False
         self.print_token()
 
@@ -441,6 +472,7 @@ class SyntaxAnalyzer(object):
 
         self.next_tok()
         if self.lexeme_is_not(";"):
+            print("ERROR: In _return(), Expected ';'")
             return False
         self.print_token()
 
@@ -460,6 +492,7 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
+            print("ERROR: In _while(), Expected '('")
             return False
         self.print_token()
         if not self.condition():
@@ -467,9 +500,11 @@ class SyntaxAnalyzer(object):
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
+            print("ERROR: In _while(), Expected ')'")
             return False
         self.print_token()
         if not self.statement():
+            print("ERROR: In _while(), Expected <Statement>")
             self.consume = False
             return False
 
@@ -487,21 +522,26 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
+            print("ERROR: In _if(), Expected 'if'")
             return False
         self.print_token()
         if not self.condition():
+            print("ERROR: In _if(), Expected <Condition>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
+            print("ERROR: In _if(), Expected ')'")
             return False
         self.print_token()
         if not self.statement():
+            print("ERROR: In _if(), Expected <Statement>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("else"):
             if self.lexeme_is_not("fi"):
+                print("ERROR: In _if(), Expected 'else' or 'fi'")
                 print("Error")
                 return False
             print("\t<If>".ljust(23)+"=> if ( <Condition>  ) <Statement> fi")
@@ -511,10 +551,12 @@ class SyntaxAnalyzer(object):
             print("\t<If>")
             return True
         if not self.statement():
+            print("ERROR: In _if(), Expected <Statement>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("fi"):
+            print("ERROR: In _if(), Expected 'fi'")
             return False
         self.print_token()
 
@@ -569,10 +611,12 @@ class SyntaxAnalyzer(object):
             return False
         self.print_token()
         if not self.statement_list():
+            print("ERROR: In compound(), Expected <Statement_List>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("}"):
+            print("ERROR: In compound(), Expected '}'")
             return False
         self.print_token()
 
@@ -588,10 +632,12 @@ class SyntaxAnalyzer(object):
             return False
         self.print_token()
         if not self.statement_list():
+            print("ERROR: In body(), Expected <Statement_List>")
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("}"):
+            print("ERROR: In body(), Expected '}' ")
             return False
         self.print_token()
 
@@ -608,22 +654,26 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.next_token.token is not "Identifier":
+            print("ERROR: In function(), Expected <Identifier>")
             self.consume = False
             return False
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
+            print("ERROR: In function(), Expected '('")
             return False
         self.print_token()
         if self.opt_parameter_list():
             self.consume = False
         self.next_tok()
         if self.lexeme_is_not(")"):
+            print("ERROR: In function(), Expected ')'")
             return False
         self.print_token()
         if self.opt_declaration_list():
             self.consume = False
         if not self.body():
+            print("ERROR: In function(), Expected <Body>")
             self.consume = False
             return False
 
@@ -658,6 +708,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
         self.next_tok()
         if self.lexeme_is_not("%%"):
+            print("ERROR: In rat17f(), Expected '%%'")
             return False
         self.print_token()
         if not self.opt_declaration_list():
@@ -676,7 +727,8 @@ def main():
     #     tokens = la.tokenize(in_file)
     #     for token in tokens:
     #         print(token)
-    mySA = SyntaxAnalyzer("test_syntax.txt")
+    CONSOLE_DEBUG = False
+    mySA = SyntaxAnalyzer("test_syntax.txt", CONSOLE_DEBUG)
 
 
 if __name__ == "__main__":
