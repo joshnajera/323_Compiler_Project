@@ -1,7 +1,8 @@
 """Handles Syntax Analysis"""
 #!/usr/bin/python3
-import enum
+import inspect
 import lexical_analyzer
+
 
 # with open('symbols.txt') as file:
 #     with open('out.txt', mode='w') as out_f:
@@ -38,8 +39,26 @@ class SyntaxAnalyzer(object):
             return False
     
     def print_token(self):
-        print("Token: {}".format(self.next_token.token.ljust(18)),end='')
+        print("Token: {}".format(self.next_token.token.ljust(24)), end='')
         print("Lexeme: {}".format(self.next_token.lexeme))
+
+    @staticmethod
+    def print_production(lhs='', rhs=''):
+        """   Prints and saves the production rule given   """
+
+        print("R:\t<{}>".format(lhs).ljust(30), end='')
+        if len(rhs) > 0:
+            print("=>\t  {}".format(rhs))
+            return
+        print('')
+
+    def error(self, expected=''):
+        """   Prints an error report   """
+
+        caller = inspect.stack()[1][3]
+        report = "ERROR: In {}()-- \n\tReceived: {}  \n\tExpected: {}"\
+            .format(caller, self.next_token.lexeme, expected)
+        print(report)
 
     def lexeme_is_not(self, char):
         """   Determines if the lexeme is NOT input, if not, dont consume token on next next_tok() call"""
@@ -47,7 +66,6 @@ class SyntaxAnalyzer(object):
         if self.next_token.lexeme != char:
             self.consume = False
             return True
-
         return False
 
     def IDs(self):
@@ -58,7 +76,7 @@ class SyntaxAnalyzer(object):
 
         # Case: Not <IDs>
         if self.next_token.token is not "Identifier":
-            print("ERROR: In IDs(), Expected <Identifier> ")
+            self.error('<Identifier>')
             self.consume = False
             return False
 
@@ -66,7 +84,7 @@ class SyntaxAnalyzer(object):
         self.next_tok()
         # Case: <Identifier>
         if self.lexeme_is_not(","):
-            print("\t<IDs>")
+            SyntaxAnalyzer.print_production('IDs')
             return True
 
         self.print_token()
@@ -91,21 +109,21 @@ class SyntaxAnalyzer(object):
 
             # Case: <Identifier>
             if self.lexeme_is_not('['):
-                print("\t<Primary>".ljust(23)+ "=> <Identifier>")
+                SyntaxAnalyzer.print_production('Primary', '<Identifier>')
                 return True
             self.print_token()
             if not self.IDs():
-                print("ERROR: In primary(), Expected <IDs> ")
+                self.error('<IDs>')
                 self.consume = False
                 return False
             self.next_tok()
             if self.lexeme_is_not(']'):
-                print("ERROR: In primary(), Expected ']' ")
+                self.error(']')
                 return False
             self.print_token()
 
             # Case: <Identifier>[<IDs>]
-            print("\t<Primary>".ljust(23)+"=> <Identifier> [<IDs>]")
+            SyntaxAnalyzer.print_production('Primary', '<Identifier> [<IDs>]')
             return True
 
         if self.lexeme_is_not("("):
@@ -113,31 +131,31 @@ class SyntaxAnalyzer(object):
             if self.next_token.token in {"Float", "Integer"}:
                 self.print_token()
                 self.consume = True
-                print("\t<Primary>".ljust(23)+"=> {}".format(self.next_token.token))
+                SyntaxAnalyzer.print_production('Primary', "<{}>".format(self.next_token.token))
                 return True
             if self.next_token.lexeme in {"true", "false"}:
                 self.print_token()
                 self.consume = True
-                print("\t<Primary>".ljust(23)+"=> {}".format(self.next_token.lexeme))
+                SyntaxAnalyzer.print_production('Primary', "<{}>".format(self.next_token.lexeme))
                 return True
             # Case: Not primary
-            print("ERROR: In primary(), Expected one of the following...\n<Identifier> OR <Integer> OR <Identifier> [<IDs>] OR ( <Expression> ) OR  <Real>  OR true OR false")
+            self.error('<Identifier> OR <Integer> OR <Identifier> [<IDs>] OR ( <Expression> ) OR  <Real>  OR true OR false')
             self.consume = False
             return False
 
         self.print_token()
         if not self.expression():
-            print("ERROR: In primary(), Expected <Expression>")
+            self.error('<Expression>')
             self.consume =False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
-            print("ERROR: In primary(), Expected ')'")
+            self.error(')')
             return False
         self.print_token()
 
         # Case: ( <Expression> )
-        print("\t<Primary>".ljust(23)+"=> ( <Expression> )")
+        SyntaxAnalyzer.print_production('Primary', '( <Expression> )')
         return True
 
     def read(self):
@@ -151,24 +169,24 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
-            print("ERROR: In read(), Expected '('")
+            self.error('(')
             return False
         self.print_token()
         if not self.IDs():
-            print("ERROR: In read(), Expected <IDs>")
+            self.error('<IDs>')
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
-            print("ERROR: In read(), Expected ')'")
+            self.error(')')
             return False
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not(";"):
-            print("ERROR: In read(), Expected ';'")
+            self.error(';')
             return False
         self.print_token()
 
-        print("\t<Read>".ljust(23)+"=> read ( <IDs> );")
+        SyntaxAnalyzer.print_production('Read', 'read ( <IDs> );')
         return True
 
     def relop(self):
@@ -178,12 +196,12 @@ class SyntaxAnalyzer(object):
         self.next_tok()
 
         if self.next_token.lexeme not in {'=', '/=', '>', '<', '=>', '<='}:
-            print("ERROR: In relop(), Expected relational operator ('=', '/=', '>', '<', '=>', '<=')")
+            self.error('relational operator (\'=\', \'/=\', \'>\', \'<\', \'=>\', \'<=\')')
             self.consume = False
             return False
 
         self.print_token()
-        print("\t<Relop>")
+        SyntaxAnalyzer.print_production('Relop', '')
         return True
 
     def factor(self):
@@ -202,14 +220,14 @@ class SyntaxAnalyzer(object):
 
         # Case: - <Primary>
         if not self.primary():
-            print("ERROR: In factor(), Expected <Primary>")
+            self.error('<Primary>')
             self.consume = False
             return False
 
-        print("\t<Factor>".ljust(23)+"=> ", end='')
         if neg:
-            print("-", end='')
-        print("<Primary>")
+            SyntaxAnalyzer.print_production('Factor', '-<Primary>')
+        else:
+            SyntaxAnalyzer.print_production('Factor', '<Primary>')
         return True
 
     def qualifier(self):
@@ -223,39 +241,39 @@ class SyntaxAnalyzer(object):
             return False
 
         self.print_token()
-        print("\t<Qualifier>".ljust(23)+"=> {}".format(self.next_token.lexeme))
+        SyntaxAnalyzer.print_production('Qualifier', '<{}>'.format(self.next_token.lexeme))
         return True
 
     def parameter(self):
         """   <Parameter> ::= <IDs > : <Qualifier>   """
 
         if not self.IDs():
-            print("ERROR: In parameter(), Expected <IDs>")
+            self.error('<IDs>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(":"):
-            print("ERROR: In parameter(), Expected ':'")
+            self.error(':')
             return False
         self.print_token()
         if not self.qualifier():
-            print("ERROR: In paramerer(), Expected <Qualifier>")
+            self.error('<Qualifier>')
             self.consume = False
             return False
 
-        print("\t<Parameter>".ljust(23)+"=> <IDs> : <Qualifier>")
+        SyntaxAnalyzer.print_production('Parameter', '<IDs> : <Qualifier>')
         return True
 
     def parameter_list(self):
         """   <Parameter List>  ::=  <Parameter>  | <Parameter> , <Parameter List>   """
 
         if not self.parameter():
-            print("ERROR: In parameter_list(), Expected <Parameter>")
+            self.error('<Parameter>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(","):
-            print("\t<Parameter List>".ljust(23)+"=> <Parameter> | <Parameter>, <Parameter List>")
+            SyntaxAnalyzer.print_production('Parameter List', '<Parameter> | <Parameter>, <Parameter List>')
             return True
         self.print_token()
         if not self.parameter_list():
@@ -269,9 +287,9 @@ class SyntaxAnalyzer(object):
 
         if not self.parameter_list():
             self.consume = False
-            print("\t<Opt Parameter List>".ljust(23)+"=> <Empty>")
+            SyntaxAnalyzer.print_production('Opt Parameter List', '<Empty>')
         else:
-            print("\t<Opt Parameter List>".ljust(23)+"=> <Parameter List>")
+            SyntaxAnalyzer.print_production('Opt Parameter List', '<Parameter List>')
         return True
 
     def declaration(self):
@@ -281,11 +299,11 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
         if not self.IDs():
-            print("ERROR: In declaration(), Expected <IDs>")
+            self.error('<IDs>')
             self.consume = False
             return False
 
-        print("\t<Declaration>".ljust(23)+"=> <Qualifier> <IDs>")
+        SyntaxAnalyzer.print_production('Declaration', '<Qualifier> <IDs>')
         return True
 
     def declaration_list(self):
@@ -296,13 +314,13 @@ class SyntaxAnalyzer(object):
             return False
         self.next_tok()
         if self.lexeme_is_not(";"):
-            print("ERROR: In declaration_list(), Expected ';'")
+            self.error(';')
             return False
         self.print_token()
         if not self.declaration_list():
             self.consume = False
 
-        print("\t<Declaration List>".ljust(23)+"=> <Declaration>; | <Declaration>; <Declaration List>")
+        SyntaxAnalyzer.print_production('Declaration List', '<Declaration>; | <Declaration>; <Declaration List>')
         return True
 
     def opt_declaration_list(self):
@@ -310,9 +328,9 @@ class SyntaxAnalyzer(object):
 
         if not self.declaration_list():
             self.consume = False
-            print("\t<Opt Declaration List>".ljust(23)+"=> <Empty>")
+            SyntaxAnalyzer.print_production('Opt Declaration List', '<Empty>')
         else:
-            print("\t<Opt Declaration List>".ljust(23)+"=> <Declaration List>")
+            SyntaxAnalyzer.print_production('Opt Declaration List', '<Declaration List>')
         return True
 
     def term_prime(self):
@@ -325,7 +343,7 @@ class SyntaxAnalyzer(object):
             return True
         self.print_token()
         if not self.factor():
-            print("ERROR: In term_prime(), Expected <Factor>")
+            self.error('<Factor>')
             self.consume = False
             return False
         if not self.term_prime():
@@ -337,14 +355,14 @@ class SyntaxAnalyzer(object):
         """   <Term> ::=  <Term> * <Factor>  | <Term> / <Factor> |  <Factor>   """
 
         if not self.factor():
-            print("ERROR: In term(), Expected <Factor>")
+            self.error('<Factor>')
             self.consume = False
             return False
         if not self.term_prime():
             self.consume = False
             return False
 
-        print("\t<Term>")
+        SyntaxAnalyzer.print_production('Term', '')
         return True
 
     def expression_prime(self):
@@ -357,7 +375,7 @@ class SyntaxAnalyzer(object):
             return True
         self.print_token()
         if not self.term():
-            print("ERROR: In expression_prime(), Expected <Term> ")
+            self.error('<Term>')
             self.consume = False
             return False
         if not self.expression_prime():
@@ -370,33 +388,33 @@ class SyntaxAnalyzer(object):
         """   <Expression>  ::= <Expression> + <Term>  | <Expression>  - <Term>  | <Term>   """
 
         if not self.term():
-            print("ERROR: In expression(), Expected <Term>")
+            self.error('<Term>')
             self.consume = False
             return False
         if not self.expression_prime():
             self.consume = False
             return False
 
-        print("\t<Expression>")
+        SyntaxAnalyzer.print_production('Expression', '')
         return True
 
     def condition(self):
         """   <Condition> ::= <Expression> <Relop> <Expression>   """
 
         if not self.expression():
-            print("ERROR: In condition(), Expected <Expression>")
+            self.error('<Expression>')
             self.consume = False
             return False
         if not self.relop():
-            print("ERROR: In condition(), Expected <Relop>")
+            self.error('<Relop>')
             self.consume = False
             return False
         if not self.expression():
-            print("ERROR: In condition(), Expected <Expression>")
+            self.error('<Expression>')
             self.consume = False
             return False
 
-        print("\t<Condition>".ljust(23)+"=> <Expression> <Relop> <Expression>")
+        SyntaxAnalyzer.print_production('Condition', '<Expression> <Relop> <Expression>')
         return True
 
     def write(self):
@@ -409,25 +427,25 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
-            print("ERROR: In write(), Expected '('")
+            self.error('(')
             return False
         self.print_token()
         if not self.expression():
-            print("ERROR: In write(), Expected <Expression>")
+            self.error('<Expression>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
-            print("ERROR: In write(), Expected ')'")
+            self.error(')')
             return False
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not(";"):
-            print("ERROR: In write(), Expected ';'")
+            self.error(';')
             return False
         self.print_token()
 
-        print("\t<Write>".ljust(23)+"=> write ( <Expression>);")
+        SyntaxAnalyzer.print_production('Write', 'write ( <Expression>);')
         return True
 
     def assign(self):
@@ -441,20 +459,20 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not(":="):
-            print("ERROR: In assign(), Expected ':='")
+            self.error(':=')
             return False
         self.print_token()
         if not self.expression():
-            print("ERROR: In assign(), Expected <Expression>")
+            self.error('<Expression>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(";"):
-            print("ERROR: In assign(), Expected ';'")
+            self.error(';')
             return False
         self.print_token()
 
-        print("\t<Assign>".ljust(23)+"=> <Identifier> := <Expression> ;")
+        SyntaxAnalyzer.print_production('Assign', '<Identifier> := <Expression> ;')
         return True
 
     def _return(self):
@@ -472,14 +490,14 @@ class SyntaxAnalyzer(object):
 
         self.next_tok()
         if self.lexeme_is_not(";"):
-            print("ERROR: In _return(), Expected ';'")
+            self.error(';')
             return False
         self.print_token()
 
         if not with_expression:
-            print("\t<Return>".ljust(23)+"=> return ;")
+            SyntaxAnalyzer.print_production('Return', 'return ;')
         else:
-            print("\t<Return>".ljust(23)+"=> return <Expression> ;")
+            SyntaxAnalyzer.print_production('Return', 'return <Expression> ;')
         return True
 
     def _while(self):
@@ -492,7 +510,7 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
-            print("ERROR: In _while(), Expected '('")
+            self.error('(')
             return False
         self.print_token()
         if not self.condition():
@@ -500,15 +518,15 @@ class SyntaxAnalyzer(object):
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
-            print("ERROR: In _while(), Expected ')'")
+            self.error(')')
             return False
         self.print_token()
         if not self.statement():
-            print("ERROR: In _while(), Expected <Statement>")
+            self.error('<Statement>')
             self.consume = False
             return False
 
-        print("\t<While>".ljust(23)+"=> while ( <Condition> ) <Statement>")
+        SyntaxAnalyzer.print_production('While', 'while ( <Condition> ) <Statement>')
         return True
 
     def _if(self):
@@ -522,70 +540,69 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
-            print("ERROR: In _if(), Expected 'if'")
+            self.error('if')
             return False
         self.print_token()
         if not self.condition():
-            print("ERROR: In _if(), Expected <Condition>")
+            self.error('<Condition>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not(")"):
-            print("ERROR: In _if(), Expected ')'")
+            self.error(')')
             return False
         self.print_token()
         if not self.statement():
-            print("ERROR: In _if(), Expected <Statement>")
+            self.error('<Statement>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("else"):
             if self.lexeme_is_not("fi"):
-                print("ERROR: In _if(), Expected 'else' or 'fi'")
-                print("Error")
+                self.error('\'else\' or \'fi\'')
                 return False
-            print("\t<If>".ljust(23)+"=> if ( <Condition>  ) <Statement> fi")
+            SyntaxAnalyzer.print_production('If', 'if ( <Condition>  ) <Statement> fi')
         # Case: if ( <Condition>  ) <Statement> fi
         self.print_token()
         if self.lexeme_is_not("else"):
-            print("\t<If>")
+            print("\t<fi>")
             return True
         if not self.statement():
-            print("ERROR: In _if(), Expected <Statement>")
+            self.error('<Statement>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("fi"):
-            print("ERROR: In _if(), Expected 'fi'")
+            self.error('fi')
             return False
         self.print_token()
 
-        print("\t<If>".ljust(23)+"=> if ( <Condition>  ) <Statement> else <Statement> fi")
+        SyntaxAnalyzer.print_production('If', 'if ( <Condition>  ) <Statement> else <Statement> fi')
         return True
 
     def statement(self):
         """   <Statement> ::=  <Compound> | <Assign> | <If> |  <Return> | <Write> | <Read> | <While>   """
 
         if self.assign():
-            print("\t<Statement>".ljust(23)+"=> <Assign>")
+            SyntaxAnalyzer.print_production('Statement', '<Assign>')
             return True
         if self._if():
-            print("\t<Statement>".ljust(23)+"=> <If>")
+            SyntaxAnalyzer.print_production('Statement', '<If>')
             return True
         if self._return():
-            print("\t<Statement>".ljust(23)+"=> <Return>")
+            SyntaxAnalyzer.print_production('Statement', '<Return>')
             return True
         if self.write():
-            print("\t<Statement>".ljust(23)+"=> <Write>")
+            SyntaxAnalyzer.print_production('Statement', '<Write>')
             return True
         if self.read():
-            print("\t<Statement>".ljust(23)+"=> <Read>")
+            SyntaxAnalyzer.print_production('Statement', '<Read>')
             return True
         if self._while():
-            print("\t<Statement>".ljust(23)+"=> <While>")
+            SyntaxAnalyzer.print_production('Statement', '<While>')
             return True
         if self.compound():
-            print("\t<Statement>".ljust(23)+"=> <Compound>")
+            SyntaxAnalyzer.print_production('Statement', '<Compound>')
             return True
 
         self.consume = False
@@ -599,7 +616,7 @@ class SyntaxAnalyzer(object):
             return False
         if not self.statement_list():
             self.consume = False
-            print("\t<Statement List>".ljust(23)+"=> <Statement>  |  <Statement> <Statement List>")
+            SyntaxAnalyzer.print_production('Statement List', '<Statement>  |  <Statement> <Statement List>')
         return True
 
     def compound(self):
@@ -611,16 +628,16 @@ class SyntaxAnalyzer(object):
             return False
         self.print_token()
         if not self.statement_list():
-            print("ERROR: In compound(), Expected <Statement_List>")
+            self.error('<Statement_List>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("}"):
-            print("ERROR: In compound(), Expected '}'")
+            self.error('}')
             return False
         self.print_token()
 
-        print("\t<Compound>".ljust(23)+"=> { <Statement List> }")
+        SyntaxAnalyzer.print_production('Compound', '{ <Statement List> }')
         return True
 
     def body(self):
@@ -632,16 +649,16 @@ class SyntaxAnalyzer(object):
             return False
         self.print_token()
         if not self.statement_list():
-            print("ERROR: In body(), Expected <Statement_List>")
+            self.error('<Statement_List>')
             self.consume = False
             return False
         self.next_tok()
         if self.lexeme_is_not("}"):
-            print("ERROR: In body(), Expected '}' ")
+            self.error('}')
             return False
         self.print_token()
 
-        print("\t<Body>".ljust(23)+"=> { <Statements List> }")
+        SyntaxAnalyzer.print_production('Body', '{ <Statement List> }')
         return True
 
     def function(self):
@@ -654,30 +671,30 @@ class SyntaxAnalyzer(object):
         self.print_token()
         self.next_tok()
         if self.next_token.token is not "Identifier":
-            print("ERROR: In function(), Expected <Identifier>")
+            self.error('<Identifier>')
             self.consume = False
             return False
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
-            print("ERROR: In function(), Expected '('")
+            self.error('(')
             return False
         self.print_token()
-        if self.opt_parameter_list():
+        if not self.opt_parameter_list():
             self.consume = False
         self.next_tok()
         if self.lexeme_is_not(")"):
-            print("ERROR: In function(), Expected ')'")
+            self.error(')')
             return False
         self.print_token()
         if self.opt_declaration_list():
             self.consume = False
         if not self.body():
-            print("ERROR: In function(), Expected <Body>")
+            self.error('<Body>')
             self.consume = False
             return False
 
-        print("\t<Function>".ljust(23)+"=> @ <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>")
+        SyntaxAnalyzer.print_production('Function', '@ <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>')
         return True
 
     def function_definitions(self):
@@ -688,7 +705,7 @@ class SyntaxAnalyzer(object):
             return False
         if not self.function_definitions():
             self.consume = False
-        print("\t<Function Definitions>".ljust(23)+"=> <Function> | <Function> <Function Definitions>")
+        SyntaxAnalyzer.print_production('Function Definitions', '<Function> | <Function> <Function Definitions>')
         return True
 
     def opt_function_definitions(self):
@@ -696,9 +713,9 @@ class SyntaxAnalyzer(object):
 
         if not self.function_definitions():
             self.consume = False
-            print("\t<Opt Function Definitions>".ljust(23)+"=> <Empty>")
+            SyntaxAnalyzer.print_production('Opt Function Definitions', '<Empty>')
         else:
-            print("\t<Opt Function Definitions>".ljust(23)+"=> <Function Definitions>")
+            SyntaxAnalyzer.print_production('Opt Function Definitions', '<Function Definitions>')
         return True
 
     def rat17f(self):
@@ -708,7 +725,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
         self.next_tok()
         if self.lexeme_is_not("%%"):
-            print("ERROR: In rat17f(), Expected '%%'")
+            self.error('%%')
             return False
         self.print_token()
         if not self.opt_declaration_list():
@@ -717,7 +734,7 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        print("\t<Rat17f>".ljust(23)+"=> <Opt Function Definitions> %% <Opt Declaration List> <Statement List>")
+        SyntaxAnalyzer.print_production('Rat17f', '<Opt Function Definitions> %% <Opt Declaration List> <Statement List>')
         return True
 
 

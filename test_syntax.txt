@@ -1,4 +1,4 @@
-@ convert  (fahr : integer)
+@  fahr : integer)
 {
            return 5 * ( fahr -32 ) / 9;
 }
@@ -11,4 +11,4 @@
          {  write  (low);
              write (convert [low]);
              low := low + step#xy;
-         } 
+         }
