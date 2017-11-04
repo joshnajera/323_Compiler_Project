@@ -1,21 +1,16 @@
 #!/usr/bin/python3
 """Handles Syntax Analysis"""
 import inspect
+import sys
 import lexical_analyzer
-
-
-# with open('symbols.txt') as file:
-#     with open('out.txt', mode='w') as out_f:
-#         myList = sorted((x for x in file), key=len)
-#         for item,i in zip(myList,range(len(myList))):
-#             out_f.write('{} = {}\n'.format(str(item).strip(), i))
-#         out_f.close()
+from pathlib import Path
 
 
 class SyntaxAnalyzer(object):
     """   Checks syntax according to ra17f rules   """
     def __init__(self, file_name, CONSOLE_DEBUG):
         self.CONSOLE_DEBUG = CONSOLE_DEBUG
+        self.has_errors = False
         in_file = open(file_name)
         self.out_file = open("output.txt", 'w')
         self.next_token = lexical_analyzer.Lexer.result("token", "lexeme", 0)
@@ -59,10 +54,12 @@ class SyntaxAnalyzer(object):
     def error(self, expected=''):
         """   Prints an error report   """
 
+        self.has_errors = True
         caller = inspect.stack()[1][3]
         report = "ERROR: Line {}\tIn function {}()-- \n\tReceived: {}  \n\tExpected: {}"\
             .format(self.next_token.line_number, caller, self.next_token.lexeme, expected)
-        print(report)
+        if self.CONSOLE_DEBUG:
+            print(report)
         self.out_file.write(report+'\n')
 
     def lexeme_is_not(self, char):
@@ -737,28 +734,53 @@ class SyntaxAnalyzer(object):
         self.next_tok()
         if self.lexeme_is_not("%%"):
             self.error('%%')
+            print("\n=== FAILED SYNTAX ANALYSIS ===")
             return False
         self.print_token()
         if not self.opt_declaration_list():
             self.consume = False
         if not self.statement_list():
+            self.error('<Statement List>')
+            print("\n=== FAILED SYNTAX ANALYSIS ===")
             self.consume = False
             return False
 
         self.print_production('Rat17f', '<Opt Function Definitions> %% <Opt Declaration List> <Statement List>')
 
-        print("\n=== PASSED SYNTAX ANALYSIS ===")
+        if self.has_errors:
+            print("\n=== FAILED SYNTAX ANALYSIS ===")
+        else:
+            print("\n=== PASSED SYNTAX ANALYSIS ===")
         return True
 
 
 def main():
-    # with open('test_syntax.txt') as in_file:
-    #     la = lexical_analyzer.Lexer()
-    #     tokens = la.tokenize(in_file)
-    #     for token in tokens:
-    #         print(token)
-    CONSOLE_DEBUG = True
-    my_SA = SyntaxAnalyzer("test_syntax.txt", CONSOLE_DEBUG)
+    """ Runs Syntax Analysis upon a given file """
+    ### Arguments: [optional]-- relative file path
+
+    if len(sys.argv) == 2:
+        file = sys.argv[1]
+    else:
+        file = "input.txt"
+
+    my_file = Path(file)
+    if my_file.is_file():
+        print("\'{}\' found, processing...".format(file))
+    else:
+        print("\'{}\' is not a valid file!".format(file))
+        exit()
+
+    CONSOLE_DEBUG = False
+    while(True):
+        dbg = input("Do you want console output? 1: Yes, 2: No \n>> ")
+        if dbg not in {'1', '2'}:
+            print("Invalid input.")
+            continue
+        if dbg is '1':
+            CONSOLE_DEBUG = True
+        break
+
+    my_SA = SyntaxAnalyzer(file, CONSOLE_DEBUG)
 
 
 if __name__ == "__main__":

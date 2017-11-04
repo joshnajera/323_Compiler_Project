@@ -130,10 +130,11 @@ Token: Separator               Lexeme: ;
 R:	<Assign>                   =>	   <Identifier> := <Expression> ;
 R:	<Statement>                =>	   <Assign>
 R:	<Statement List>           =>	   <Statement>  |  <Statement> <Statement List>
-Token: Separator               Lexeme: }
-R:	<Compound>                 =>	   { <Statement List> }
-R:	<Statement>                =>	   <Compound>
-R:	<While>                    =>	   while ( <Condition> ) <Statement>
-R:	<Statement>                =>	   <While>
+ERROR: Line 13	In function compound()-- 
+	Received: ;  
+	Expected: }
+ERROR: Line 13	In function _while()-- 
+	Received: ;  
+	Expected: <Statement>
 R:	<Statement List>           =>	   <Statement>  |  <Statement> <Statement List>
 R:	<Rat17f>                   =>	   <Opt Function Definitions> %% <Opt Declaration List> <Statement List>
