@@ -118,7 +118,7 @@ class Lexer(object):
                 if word == '':
                     continue
 
-                if word in SEP_OP or word in KEYWORDS:
+                if word in SEP_OP or word in KEYWORDS:      # TODO Can refactor this
                     evaluation = self.eval(word, line_number)
                     yield evaluation
 
@@ -128,7 +128,7 @@ class Lexer(object):
 
                     for character in word_iter:
                         # Checks if curr char is part of a 'multicharacter' Operator
-                        if character in SEP_OP.union(':'):
+                        if character in SEP_OP:
                             if buffer:
                                 # Evaluate anything that might be in the buffer first
                                 evaluation = self.eval(buffer, line_number)
@@ -146,6 +146,10 @@ class Lexer(object):
                                     evaluation = self.eval(temp, line_number)
                                     if evaluation:
                                         yield evaluation
+                                elif nxt in SEP_OP and character in SEP_OP:
+                                    yield self.eval(character, line_number)
+                                    yield self.eval(nxt, line_number)
+                                    
                                 else:
                                     yield self.eval(character, line_number)
                                     buffer = nxt
