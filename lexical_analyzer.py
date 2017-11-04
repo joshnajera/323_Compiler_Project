@@ -1,9 +1,11 @@
 #!/usr/bin/python3
-__author__ = 'Josh'
-
+"""Analyzes a text file and yields token-lexeme pairs"""
 import string
 import enum
 from collections import namedtuple
+
+__author__ = 'Josh'
+
 
 KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "boolean", "real", "true", "false"}
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
@@ -94,7 +96,7 @@ class Lexer(object):
             if self.transition[char]() == -1:
                 print("Error: Bad transition")
                 return 0
-            
+
         if self.state == State.ID1 or self.state == State.ID2:
             self.state = State.START
             return Lexer.result("Identifier", input_string, line_number)
@@ -113,12 +115,12 @@ class Lexer(object):
         """Iterates over a text file, generating tokens and yielding them"""
         buffer = ""
         for line_number, line in enumerate(in_file):
-            for word in line.strip().replace('\t',' ').split(' '):
+            for word in line.strip().replace('\t', ' ').split(' '):
 
                 if word == '':
                     continue
 
-                if word in SEP_OP or word in KEYWORDS:      # TODO Can refactor this
+                if word in SEP_OP or word in KEYWORDS:
                     evaluation = self.eval(word, line_number)
                     yield evaluation
 
@@ -149,7 +151,7 @@ class Lexer(object):
                                 elif nxt in SEP_OP and character in SEP_OP:
                                     yield self.eval(character, line_number)
                                     yield self.eval(nxt, line_number)
-                                    
+
                                 else:
                                     yield self.eval(character, line_number)
                                     buffer = nxt
@@ -158,9 +160,9 @@ class Lexer(object):
                                 evaluation = self.eval(character, line_number)
                                 yield evaluation
                                 continue
-                    
+
                         buffer += character
-                
+
                     if buffer:
                         evaluation = self.eval(buffer, line_number)
                         if evaluation:

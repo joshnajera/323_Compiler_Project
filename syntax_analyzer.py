@@ -1,5 +1,5 @@
-"""Handles Syntax Analysis"""
 #!/usr/bin/python3
+"""Handles Syntax Analysis"""
 import inspect
 import lexical_analyzer
 
@@ -39,7 +39,7 @@ class SyntaxAnalyzer(object):
             return self.next_token
         except StopIteration:
             return False
-    
+
     def print_token(self):
         output = "Token: {} Lexeme: {}".format(self.next_token.token.ljust(23), self.next_token.lexeme)
         if self.CONSOLE_DEBUG:
@@ -758,7 +758,7 @@ def main():
     #     for token in tokens:
     #         print(token)
     CONSOLE_DEBUG = True
-    mySA = SyntaxAnalyzer("test_syntax.txt", CONSOLE_DEBUG)
+    my_SA = SyntaxAnalyzer("test_syntax.txt", CONSOLE_DEBUG)
 
 
 if __name__ == "__main__":
