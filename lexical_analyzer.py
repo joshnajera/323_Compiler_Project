@@ -92,10 +92,10 @@ class Lexer(object):
         for char in input_string:
             if char not in self.transition:
                 print("Error: char not in transition")
-                return 0
+                return Lexer.result("ERROR", input_string, line_number)
             if self.transition[char]() == -1:
                 print("Error: Bad transition")
-                return 0
+                return Lexer.result("ERROR", input_string, line_number)
 
         if self.state == State.ID1 or self.state == State.ID2:
             self.state = State.START

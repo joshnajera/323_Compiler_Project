@@ -36,6 +36,10 @@ class SyntaxAnalyzer(object):
             return False
 
     def print_token(self):
+        """   Prints the token-lexeme pair   """
+
+        if self.has_errors:
+            return
         output = "Token: {} Lexeme: {}".format(self.next_token.token.ljust(23), self.next_token.lexeme)
         if self.CONSOLE_DEBUG:
             print(output)
@@ -44,6 +48,8 @@ class SyntaxAnalyzer(object):
     def print_production(self, lhs='', rhs=''):
         """   Prints and saves the production rule given   """
 
+        if self.has_errors:
+            return
         output = "R:\t<{}>".format(lhs).ljust(30)
         if len(rhs) > 0:
             output = output + "=>\t   {}".format(rhs)
@@ -54,13 +60,20 @@ class SyntaxAnalyzer(object):
     def error(self, expected=''):
         """   Prints an error report   """
 
-        self.has_errors = True
+        # Only print the display the first error.  I can't handle error-recovery yet.
         caller = inspect.stack()[1][3]
-        report = "ERROR: Line {}\tIn function {}()-- \n\tReceived: {}  \n\tExpected: {}"\
-            .format(self.next_token.line_number, caller, self.next_token.lexeme, expected)
-        if self.CONSOLE_DEBUG:
-            print(report)
-        self.out_file.write(report+'\n')
+        if not self.has_errors:
+            report = "\nERROR:  Line {}\n\tIn function:\t'{}()' \n\tReceived:\t{}  \n\tExpected:\t{}\nProduction call Stack:"\
+                .format(self.next_token.line_number, caller, self.next_token.lexeme, expected)
+            if self.CONSOLE_DEBUG:
+                print(report)
+            self.out_file.write(report+'\n')
+        else:
+            report = "\t'{}()'".format(caller)
+            if self.CONSOLE_DEBUG:
+                print(report)
+            self.out_file.write(report+'\n')
+        self.has_errors = True
 
     def lexeme_is_not(self, char):
         """   Determines if the lexeme is NOT input, if not, dont consume token on next next_tok() call"""
@@ -115,7 +128,6 @@ class SyntaxAnalyzer(object):
                 return True
             self.print_token()
             if not self.IDs():
-                self.error('<IDs>')
                 self.consume = False
                 return False
             self.next_tok()
