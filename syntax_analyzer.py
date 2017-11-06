@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 """Handles Syntax Analysis"""
-import inspect
+# By Josh Najera
 import sys
+import inspect
 import lexical_analyzer
 from pathlib import Path
 
@@ -23,7 +24,7 @@ class SyntaxAnalyzer(object):
 
     # Idea: Add check in next_tok to make sure we don't have 'extra_token_consumed' flag raised before consuming
     def next_tok(self):
-        """Fetches next token/lexeme pair, if allowed"""
+        """   Fetches next token/lexeme pair, if allowed   """
 
         if not self.consume:
             self.consume = True
@@ -84,7 +85,7 @@ class SyntaxAnalyzer(object):
         return False
 
     def IDs(self):
-        """  <IDs> ::= <Identifier> | <Identifier>, <IDs>   """
+        """   <IDs> ::= <Identifier> | <Identifier>, <IDs>    """
 
         # Consume next token from generator ?
         self.next_tok()
@@ -223,7 +224,7 @@ class SyntaxAnalyzer(object):
         return True
 
     def factor(self):
-        """"   <Factor> ::= - <Primary> | <Primary>   """
+        """   <Factor> ::= - <Primary> | <Primary>   """
 
         # Consume next token from generator
         self.next_tok()
@@ -342,7 +343,7 @@ class SyntaxAnalyzer(object):
         return True
 
     def opt_declaration_list(self):
-        """<Opt Declaration List> ::= <Declaration List>  | <Empty>"""
+        """   <Opt Declaration List> ::= <Declaration List>  | <Empty>   """
 
         if not self.declaration_list():
             self.consume = False
@@ -682,7 +683,7 @@ class SyntaxAnalyzer(object):
         return True
 
     def function(self):
-        """<Function> ::=  @  <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>"""
+        """   <Function> ::=  @  <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>   """
 
         self.next_tok()
 
@@ -793,6 +794,7 @@ def main():
         break
 
     my_SA = SyntaxAnalyzer(file, CONSOLE_DEBUG)
+    input("Press enter to exit.")
 
 
 if __name__ == "__main__":
