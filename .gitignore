@@ -1,2 +1,12 @@
 .vscode/launch.json
 .idea/workspace.xml
+build/syntax_analyzer/xref-syntax_analyzer.html
+build/syntax_analyzer/warnsyntax_analyzer.txt
+build/syntax_analyzer/syntax_analyzer.exe.manifest
+build/syntax_analyzer/out00-PYZ.toc
+build/syntax_analyzer/out00-PYZ.pyz
+build/syntax_analyzer/out00-PKG.toc
+build/syntax_analyzer/out00-PKG.pkg
+build/syntax_analyzer/out00-EXE.toc
+build/syntax_analyzer/out00-Analysis.toc
+build/syntax_analyzer/base_library.zip

@@ -92,7 +92,6 @@ class SyntaxAnalyzer(object):
 
         # Case: Not <IDs>
         if self.next_token.token is not "Identifier":
-            self.error('<Identifier>')
             self.consume = False
             return False
 
@@ -154,7 +153,6 @@ class SyntaxAnalyzer(object):
                 self.print_production('Primary', "<{}>".format(self.next_token.lexeme))
                 return True
             # Case: Not primary
-            self.error('<Identifier> OR <Integer> OR <Identifier> [<IDs>] OR ( <Expression> ) OR  <Real>  OR true OR false')
             self.consume = False
             return False
 
@@ -239,7 +237,6 @@ class SyntaxAnalyzer(object):
 
         # Case: - <Primary>
         if not self.primary():
-            self.error('<Primary>')
             self.consume = False
             return False
 
@@ -267,7 +264,6 @@ class SyntaxAnalyzer(object):
         """   <Parameter> ::= <IDs > : <Qualifier>   """
 
         if not self.IDs():
-            self.error('<IDs>')
             self.consume = False
             return False
         self.next_tok()
@@ -287,7 +283,6 @@ class SyntaxAnalyzer(object):
         """   <Parameter List>  ::=  <Parameter>  | <Parameter> , <Parameter List>   """
 
         if not self.parameter():
-            self.error('<Parameter>')
             self.consume = False
             return False
         self.next_tok()
@@ -374,7 +369,6 @@ class SyntaxAnalyzer(object):
         """   <Term> ::=  <Term> * <Factor>  | <Term> / <Factor> |  <Factor>   """
 
         if not self.factor():
-            self.error('<Factor>')
             self.consume = False
             return False
         if not self.term_prime():
@@ -407,7 +401,6 @@ class SyntaxAnalyzer(object):
         """   <Expression>  ::= <Expression> + <Term>  | <Expression>  - <Term>  | <Term>   """
 
         if not self.term():
-            self.error('<Term>')
             self.consume = False
             return False
         if not self.expression_prime():
