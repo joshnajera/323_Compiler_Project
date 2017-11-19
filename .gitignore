@@ -10,3 +10,4 @@ build/syntax_analyzer/out00-PKG.pkg
 build/syntax_analyzer/out00-EXE.toc
 build/syntax_analyzer/out00-Analysis.toc
 build/syntax_analyzer/base_library.zip
+__pycache__/syntax_analyzer.cpython-36.pyc
