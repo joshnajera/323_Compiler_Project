@@ -1,14 +1,4 @@
-@ convert(fahr:integer)
-{
-           return 5*(fahr-32)/9;	
-}
-
 %%
-     integer low, high, step#xy;
+     integer hello, world, x;
 
-     read(low,high,step#xy);
-     while(low<high)  
-         {write(low);
-             write(convert[low]);
-             low:=low+step#xy;
-         } 
+     if (x < x) hello := -(world+1); else world :=3; fi
