@@ -14,12 +14,12 @@ R:	<Declaration List>         =>	   <Declaration>; | <Declaration>; <Declaration
 R:	<Opt Declaration List>     =>	   <Declaration List>
 Token: Keyword                 Lexeme: if
 Token: Separator               Lexeme: (
-Token: Identifier              Lexeme: x
+Token: Identifier              Lexeme: world
 R:	<Primary>                  =>	   <Identifier>
 R:	<Factor>                   =>	   <Primary>
 R:	<Term>                     
 R:	<Expression>               
-Token: Operator                Lexeme: <
+Token: Operator                Lexeme: =>
 R:	<Relop>                    
 Token: Identifier              Lexeme: x
 R:	<Primary>                  =>	   <Identifier>
@@ -28,39 +28,26 @@ R:	<Term>
 R:	<Expression>               
 R:	<Condition>                =>	   <Expression> <Relop> <Expression>
 Token: Separator               Lexeme: )
+Token: Keyword                 Lexeme: read
+Token: Separator               Lexeme: (
 Token: Identifier              Lexeme: hello
-Token: Operator                Lexeme: :=
-Token: Operator                Lexeme: -
+R:	<IDs>                      
+Token: Separator               Lexeme: )
+Token: Separator               Lexeme: ;
+R:	<Read>                     =>	   read ( <IDs> );
+R:	<Statement>                =>	   <Read>
+Token: Keyword                 Lexeme: else
+Token: Keyword                 Lexeme: write
 Token: Separator               Lexeme: (
 Token: Identifier              Lexeme: world
 R:	<Primary>                  =>	   <Identifier>
 R:	<Factor>                   =>	   <Primary>
 R:	<Term>                     
-Token: Operator                Lexeme: +
-Token: Integer                 Lexeme: 1
-R:	<Primary>                  =>	   <Integer>
-R:	<Factor>                   =>	   <Primary>
-R:	<Term>                     
 R:	<Expression>               
 Token: Separator               Lexeme: )
-R:	<Primary>                  =>	   ( <Expression> )
-R:	<Factor>                   =>	   -<Primary>
-R:	<Term>                     
-R:	<Expression>               
 Token: Separator               Lexeme: ;
-R:	<Assign>                   =>	   <Identifier> := <Expression> ;
-R:	<Statement>                =>	   <Assign>
-Token: Keyword                 Lexeme: else
-Token: Identifier              Lexeme: world
-Token: Operator                Lexeme: :=
-Token: Integer                 Lexeme: 3
-R:	<Primary>                  =>	   <Integer>
-R:	<Factor>                   =>	   <Primary>
-R:	<Term>                     
-R:	<Expression>               
-Token: Separator               Lexeme: ;
-R:	<Assign>                   =>	   <Identifier> := <Expression> ;
-R:	<Statement>                =>	   <Assign>
+R:	<Write>                    =>	   write ( <Expression>);
+R:	<Statement>                =>	   <Write>
 Token: Keyword                 Lexeme: fi
 R:	<If>                       =>	   if ( <Condition>  ) <Statement> else <Statement> fi
 R:	<Statement>                =>	   <If>

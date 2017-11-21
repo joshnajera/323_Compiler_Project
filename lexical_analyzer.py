@@ -9,7 +9,7 @@ __author__ = 'Josh'
 
 KEYWORDS = {"while", "if", "fi", "else", "return", "read", "write", "integer", "boolean", "real", "true", "false"}
 DIGITS = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
-OPERATORS = {':=', '+', '-', '*', '/', '%%', '@', '<', '>', '/=', '>=', '<='}
+OPERATORS = {':=', '+', '-', '*', '/', '%%', '@', '<', '>', '/=', '=>', '<='}
 LETTERS = set(string.ascii_letters)
 SEPARATORS = {'(', ')', '{', '}', ',', ';', '[', ']', ':'}
 SEP_OP = SEPARATORS.union(OPERATORS)

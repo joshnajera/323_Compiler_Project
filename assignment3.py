@@ -4,6 +4,8 @@
 import sys
 import inspect
 import lexical_analyzer
+from inspect import currentframe as c_frame
+from inspect import getouterframes as o_frame
 from pathlib import Path
 from collections import namedtuple as nt
 
@@ -20,14 +22,20 @@ class Semantics(object):
         self.sym_table = dict()
         self.j_stack = []
 
+
+    def addr(self):
+        '''   Gets address   '''
+        return len(self.instruction_table)
+
     
     def print_table(self):
+        '''   Prints out entire Instruction Table   '''
         print()
         print("Instruction Table".center(30))
-        print("{}\t|\t{}\t\t|\t{}".format('Addr', 'Op', 'Oprnd'))
-        print("------------------------------")
+        print("{}\t|\t{}\t|\t{}".format('Addr', 'Op', 'Oprnd'))
+        print("-------------------------------------------")
         for i, item in enumerate(self.instruction_table[1:]):
-            print("{}\t\t|\t{}\t|\t{}".format((i+1), item.Op, item.Oprnd))
+            print("{}\t|\t{}\t|\t{}".format((i+1), item.Op, item.Oprnd))
 
 
     def gen_sym(self, id_symbol, id_type):
@@ -49,19 +57,24 @@ class Semantics(object):
         if id_symbol in self.sym_table:
             return self.sym_table[id_symbol].address
         else:
+            print('ERROR: Identifier {} undefined'.format(id_symbol))
             return False
 
 
-    def push_jump_stack(self, instr_addr):
+    def push_jump_stack(self, instr_addr=None):
         '''   Pushes an instruction address onto j_stack so it can be used to back patch   '''
+        '''   If no argument, the address of the last instruction is used   '''
+        if not instr_addr:
+            instr_addr = len(self.instruction_table)
         self.j_stack.append(instr_addr)
 
 
-    def back_patch(self, jump_addr):
+    def back_patch(self, jump_addr=None):
         '''   Patchs the top of j_stack with jump_addr   '''
+        if not jump_addr:
+            jump_addr = len(self.instruction_table)
         addr = self.j_stack.pop()
-        self.instruction_table[addr].Oprnd = jump_addr
-
+        self.instruction_table[addr] = self.instr(self.instruction_table[addr].Op, jump_addr)
 
 
 
@@ -71,6 +84,7 @@ class SyntaxAnalyzer(object):
     def __init__(self, file_name, CONSOLE_DEBUG):
         self.CONSOLE_DEBUG = CONSOLE_DEBUG
         self.has_errors = False
+        self.mode = None
         self.semantic = Semantics()
         in_file = open(file_name)
         self.out_file = open("output.txt", 'w')
@@ -160,10 +174,19 @@ class SyntaxAnalyzer(object):
 
         if qualif:
             self.semantic.gen_sym(self.next_token.lexeme, qualif)
+        else:
+            if self.mode == 'write':
+                addr = self.semantic.get_addr(self.next_token.lexeme)
+                self.semantic.gen_instr('PUSHM', addr)
+            if self.mode == 'read':
+                addr = self.semantic.get_addr(self.next_token.lexeme)
+                # self.semantic.
+                self.semantic.gen_instr('POPM', addr)
 
         self.next_tok()
         # Case: <Identifier>
         if self.lexeme_is_not(","):
+            self.mode = None
             self.print_production('IDs')
             return True
 
@@ -253,7 +276,12 @@ class SyntaxAnalyzer(object):
             self.error('(')
             return False
         self.print_token()
-        if not self.IDs():
+
+        # Semantic actions?  Ids > possibility of more than one > stdin needs to read and save to each?
+        self.semantic.gen_instr('STDIN')
+        self.mode = 'read'
+
+        if not self.IDs(None):
             self.error('<IDs>')
             return False
         self.next_tok()
@@ -501,10 +529,28 @@ class SyntaxAnalyzer(object):
             self.error('<Relop>')
             self.consume = False
             return False
+
+        # Conditional semantics
+        rel = self.next_token.lexeme
+
         if not self.expression():
             self.error('<Expression>')
             self.consume = False
             return False
+
+        # Conditional semantics
+        if rel == '>':
+            self.semantic.gen_instr('GRE')
+        elif rel == '<':
+            self.semantic.gen_instr('LES')
+        elif rel == '=':
+            self.semantic.gen_instr('EQU')
+        elif rel == '/=':
+            self.semantic.gen_instr('NEQ')
+        elif rel == '=>':
+            self.semantic.gen_instr('GEQ')
+        elif rel == '<=':
+            self.semantic.gen_instr('LEQ')
 
         self.print_production('Condition', '<Expression> <Relop> <Expression>')
         return True
@@ -521,11 +567,17 @@ class SyntaxAnalyzer(object):
         if self.lexeme_is_not("("):
             self.error('(')
             return False
+
+        self.mode = 'write'
+
         self.print_token()
         if not self.expression():
             self.error('<Expression>')
             self.consume = False
             return False
+
+        self.semantic.gen_instr('STDOUT')
+
         self.next_tok()
         if self.lexeme_is_not(")"):
             self.error(')')
@@ -607,8 +659,12 @@ class SyntaxAnalyzer(object):
 
         if self.lexeme_is_not("while"):
             return False
-        addr = len(self.semantic.instruction_table)
+
+        # Save current address so we can jump back to it at end of loop
+        # Then we can re-run the comparison
+        addr = self.semantic.addr()
         self.semantic.gen_instr("LABEL")
+
         self.print_token()
         self.next_tok()
         if self.lexeme_is_not("("):
@@ -618,6 +674,14 @@ class SyntaxAnalyzer(object):
         if not self.condition():
             self.consume = False
             return False
+
+        # TODO-- Conditional semantics
+        self.semantic.push_jump_stack() 
+        # Saves current address for JUMPZ, so later it can be back-patched
+        # This is so if the comparison is false
+        #   we can jump to a point outside of the loop
+        self.semantic.gen_instr('JUMPZ')
+
         self.next_tok()
         if self.lexeme_is_not(")"):
             self.error(')')
@@ -628,7 +692,11 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        # self.semantic.back_patch(addr)
+        # End of while loop, jump back to 'addr' to restart
+        self.semantic.gen_instr('JUMP', addr)
+        # Back-patch out 'while condition'  ( backpatch JUMPZ)
+        self.semantic.back_patch()
+
         self.print_production('While', 'while ( <Condition> ) <Statement>')
         return True
 
@@ -650,6 +718,11 @@ class SyntaxAnalyzer(object):
             self.error('<Condition>')
             self.consume = False
             return False
+
+        self.semantic.push_jump_stack()
+        # Save current instruction address (JUMPZ) to back-patch
+        self.semantic.gen_instr('JUMPZ')
+
         self.next_tok()
         if self.lexeme_is_not(")"):
             self.error(')')
@@ -658,20 +731,32 @@ class SyntaxAnalyzer(object):
         if not self.statement():
             self.error('<Statement>')
             self.consume = False
-            return False
+
+
         self.next_tok()
         if self.lexeme_is_not("else"):
             if self.lexeme_is_not("fi"):
                 # Case: Missing else and fi
                 self.error('\'else\' or \'fi\'')
                 return False
+            self.consume = True
             self.print_production('If', 'if ( <Condition>  ) <Statement> fi')
+
+            # Back-patch our JUMPZ
+            self.semantic.back_patch()
+
+            return True
+                
+        # Back-patch our JUMPZ
+        self.semantic.gen_instr('JUMP',)
+        self.semantic.back_patch()
+        self.semantic.push_jump_stack(self.semantic.addr() - 1)
 
         # Case: if ( <Condition>  ) <Statement> fi
         self.print_token()
-        if self.lexeme_is_not("else"):
-            print("\t<fi>")  # TODO WTF is this?
-            return True
+        # if self.lexeme_is_not("else"):
+        #     print("\t<fi>")  # TODO WTF is this?
+        #     return True
         if not self.statement():
             self.error('<Statement>')
             self.consume = False
@@ -680,6 +765,7 @@ class SyntaxAnalyzer(object):
         if self.lexeme_is_not("fi"):
             self.error('fi')
             return False
+        self.semantic.back_patch()
         self.print_token()
 
         self.print_production('If', 'if ( <Condition>  ) <Statement> else <Statement> fi')
@@ -688,6 +774,9 @@ class SyntaxAnalyzer(object):
     def statement(self):
         """   <Statement> ::=  <Compound> | <Assign> | <If> |  <Return> | <Write> | <Read> | <While>   """
 
+        if self.compound():
+            self.print_production('Statement', '<Compound>')
+            return True
         if self.assign():
             self.print_production('Statement', '<Assign>')
             return True
@@ -705,9 +794,6 @@ class SyntaxAnalyzer(object):
             return True
         if self._while():
             self.print_production('Statement', '<While>')
-            return True
-        if self.compound():
-            self.print_production('Statement', '<Compound>')
             return True
 
         self.consume = False

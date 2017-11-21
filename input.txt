@@ -1,4 +1,4 @@
 %%
      integer hello, world, x;
 
-     if (x < x) hello := -(world+1); else world :=3; fi
+     if (world => x) read(hello); else write(world); fi 
