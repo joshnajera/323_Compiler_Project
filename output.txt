@@ -10,6 +10,13 @@ Token: Identifier              Lexeme: x
 R:	<IDs>                      
 R:	<Declaration>              =>	   <Qualifier> <IDs>
 Token: Separator               Lexeme: ;
+Token: Keyword                 Lexeme: boolean
+R:	<Qualifier>                =>	   <boolean>
+Token: Identifier              Lexeme: machina
+R:	<IDs>                      
+R:	<Declaration>              =>	   <Qualifier> <IDs>
+Token: Separator               Lexeme: ;
+R:	<Declaration List>         =>	   <Declaration>; | <Declaration>; <Declaration List>
 R:	<Declaration List>         =>	   <Declaration>; | <Declaration>; <Declaration List>
 R:	<Opt Declaration List>     =>	   <Declaration List>
 Token: Keyword                 Lexeme: if
@@ -21,13 +28,14 @@ R:	<Term>
 R:	<Expression>               
 Token: Operator                Lexeme: =>
 R:	<Relop>                    
-Token: Identifier              Lexeme: x
+Token: Identifier              Lexeme: q
 R:	<Primary>                  =>	   <Identifier>
 R:	<Factor>                   =>	   <Primary>
 R:	<Term>                     
 R:	<Expression>               
 R:	<Condition>                =>	   <Expression> <Relop> <Expression>
 Token: Separator               Lexeme: )
+Token: Separator               Lexeme: {
 Token: Keyword                 Lexeme: read
 Token: Separator               Lexeme: (
 Token: Identifier              Lexeme: hello
@@ -36,6 +44,10 @@ Token: Separator               Lexeme: )
 Token: Separator               Lexeme: ;
 R:	<Read>                     =>	   read ( <IDs> );
 R:	<Statement>                =>	   <Read>
+R:	<Statement List>           =>	   <Statement>  |  <Statement> <Statement List>
+Token: Separator               Lexeme: }
+R:	<Compound>                 =>	   { <Statement List> }
+R:	<Statement>                =>	   <Compound>
 Token: Keyword                 Lexeme: else
 Token: Keyword                 Lexeme: write
 Token: Separator               Lexeme: (
@@ -51,5 +63,15 @@ R:	<Statement>                =>	   <Write>
 Token: Keyword                 Lexeme: fi
 R:	<If>                       =>	   if ( <Condition>  ) <Statement> else <Statement> fi
 R:	<Statement>                =>	   <If>
+Token: Identifier              Lexeme: machina
+Token: Operator                Lexeme: :=
+Token: Identifier              Lexeme: x
+R:	<Primary>                  =>	   <Identifier>
+R:	<Factor>                   =>	   <Primary>
+R:	<Term>                     
+R:	<Expression>               
+Token: Separator               Lexeme: ;
+R:	<Assign>                   =>	   <Identifier> := <Expression> ;
+R:	<Statement>                =>	   <Assign>
 R:	<Statement List>           =>	   <Statement>  |  <Statement> <Statement List>
 R:	<Rat17f>                   =>	   <Opt Function Definitions> %% <Opt Declaration List> <Statement List>

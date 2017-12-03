@@ -31,6 +31,13 @@ class Semantics(object):
     def print_table(self):
         '''   Prints out entire Instruction Table   '''
         print()
+        print("Symbol Table".center(30))
+        print("-------------------------------------------")
+        print("{}\t|\t{}\t|\t{}".format('Var', 'Value', 'Type'))
+        for item, value in self.sym_table.items():
+            print("{}\t|\t{}\t|\t{}".format(item, value[0], value[1]))
+
+        print()
         print("Instruction Table".center(30))
         print("{}\t|\t{}\t|\t{}".format('Addr', 'Op', 'Oprnd'))
         print("-------------------------------------------")
