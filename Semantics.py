@@ -13,7 +13,6 @@ class Semantics(object):
         self.instruction_table = ['[Index]=Instr_address: (Op, Operand)']
         self.sym_table = dict()
         self.j_stack = []
-        self.type_stack = []
 
 
     def addr(self):
