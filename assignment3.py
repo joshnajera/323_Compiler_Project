@@ -4,86 +4,11 @@
 import sys
 import inspect
 import lexical_analyzer
+from Semantics import Semantics as Semantics
 from inspect import currentframe as c_frame
 from inspect import getouterframes as o_frame
 from pathlib import Path
 from collections import namedtuple as nt
-
-class Semantics(object):
-    '''  Handles semantic actions, actions such as instruction and symbol table management   '''
-
-    sym = nt('ID_Entry', 'address type')
-    instr = nt('Instr', 'Op Oprnd')
-
-    def __init__(self):
-        '''Inits'''
-        # Might have to change it from a table to something else
-        self.instruction_table = ['[Index]=Instr_address: (Op, Operand)']
-        self.sym_table = dict()
-        self.j_stack = []
-
-
-    def addr(self):
-        '''   Gets address   '''
-        return len(self.instruction_table)
-
-    
-    def print_table(self):
-        '''   Prints out entire Instruction Table   '''
-        print()
-        print("Symbol Table".center(30))
-        print("-------------------------------------------")
-        print("{}\t|\t{}\t|\t{}".format('Var', 'Value', 'Type'))
-        for item, value in self.sym_table.items():
-            print("{}\t|\t{}\t|\t{}".format(item, value[0], value[1]))
-
-        print()
-        print("Instruction Table".center(30))
-        print("{}\t|\t{}\t|\t{}".format('Addr', 'Op', 'Oprnd'))
-        print("-------------------------------------------")
-        for i, item in enumerate(self.instruction_table[1:]):
-            print("{}\t|\t{}\t|\t{}".format((i+1), item.Op, item.Oprnd))
-
-
-    def gen_sym(self, id_symbol, id_type):
-        '''   Generates a new symbol table entry for id_symbol   '''
-        if id_symbol in self.sym_table:
-            print("ERROR: {} is already defined".format(id_symbol))
-            return False
-        self.sym_table[id_symbol] = self.sym(1000 + len(self.sym_table), id_type)
-        return True
-        
-
-    def gen_instr(self, instruction_name, address=None): # get_addr(id) ):
-        '''   Generates a new table instruction table entry auto increment address   '''
-        self.instruction_table.append(self.instr(instruction_name, address))
-
-
-    def get_addr(self, id_symbol):
-        '''   Gets the address of an identifier   '''
-        if id_symbol in self.sym_table:
-            return self.sym_table[id_symbol].address
-        else:
-            print('ERROR: Identifier {} undefined'.format(id_symbol))
-            return False
-
-
-    def push_jump_stack(self, instr_addr=None):
-        '''   Pushes an instruction address onto j_stack so it can be used to back patch   '''
-        '''   If no argument, the address of the last instruction is used   '''
-        if not instr_addr:
-            instr_addr = len(self.instruction_table)
-        self.j_stack.append(instr_addr)
-
-
-    def back_patch(self, jump_addr=None):
-        '''   Patchs the top of j_stack with jump_addr   '''
-        if not jump_addr:
-            jump_addr = len(self.instruction_table)
-        addr = self.j_stack.pop()
-        self.instruction_table[addr] = self.instr(self.instruction_table[addr].Op, jump_addr)
-
-
 
 class SyntaxAnalyzer(object):
     """   Checks syntax according to ra17f rules   """
@@ -92,6 +17,8 @@ class SyntaxAnalyzer(object):
         self.CONSOLE_DEBUG = CONSOLE_DEBUG
         self.has_errors = False
         self.mode = None
+        self.type_checking = False
+        self.last_type = None
         self.semantic = Semantics()
         in_file = open(file_name)
         self.out_file = open("output.txt", 'w')
@@ -102,6 +29,30 @@ class SyntaxAnalyzer(object):
         self.rat17f()
         self.out_file.close()
         in_file.close()
+    
+    def type_check(self, arg):
+        '''   Performs type checking with arg   '''
+        if self.next_token.token in {'Operator', 'Separator'}:
+            return True
+
+        if not self.type_checking:
+            self.type_checking = True
+            if arg in {'Integer','Float', 'Boolean'}:
+                self.last_type = arg
+            else:
+                self.last_type = self.semantic.get_type(arg)
+            return True
+        else:
+            if arg in {'Integer','Float', 'Boolean'}:
+                current_type = arg
+            else:
+                current_type = self.semantic.get_type(arg)
+
+            if current_type != self.last_type:
+                print("ERROR: Type mis-match\n\tReceived: {}\n\tExpected: {}".format(current_type, self.last_type))
+                self.has_errors = True
+                return False
+            return True
 
     # Idea: Add check in next_tok to make sure we don't have 'extra_token_consumed' flag raised before consuming
     def next_tok(self):
@@ -180,13 +131,21 @@ class SyntaxAnalyzer(object):
         # If there is a qualifier passed, we are making a new entry
 
         if qualif:
-            self.semantic.gen_sym(self.next_token.lexeme, qualif)
+            if not self.semantic.gen_sym(self.next_token.lexeme, qualif):
+                self.has_errors = True
+                return False
         else:
             if self.mode == 'write':
                 addr = self.semantic.get_addr(self.next_token.lexeme)
+                if not addr:
+                    self.has_errors = True
+                    return False
                 self.semantic.gen_instr('PUSHM', addr)
             if self.mode == 'read':
                 addr = self.semantic.get_addr(self.next_token.lexeme)
+                if not addr:
+                    self.has_errors = True
+                    return False
                 # self.semantic.
                 self.semantic.gen_instr('POPM', addr)
 
@@ -215,7 +174,16 @@ class SyntaxAnalyzer(object):
         lex = self.next_token.lexeme
 
         if self.next_token.token is "Identifier":
-            self.semantic.gen_instr('PUSHM',self.semantic.get_addr(lex))
+
+            # semantics
+            addr = self.semantic.get_addr(lex)
+            if not addr:
+                self.has_errors = True
+                return False
+            self.semantic.gen_instr('PUSHM',addr)
+            if not self.type_check(lex):
+                return False
+
             self.print_token()
             self.next_tok()
             # Case: <Identifier>
@@ -242,12 +210,19 @@ class SyntaxAnalyzer(object):
                 self.print_token()
                 self.consume = True
                 self.print_production('Primary', "<{}>".format(self.next_token.token))
+
                 self.semantic.gen_instr('PUSHI', self.next_token.lexeme)
+                if not self.type_check(self.next_token.token):
+                    return False
                 return True
+
             if self.next_token.lexeme in {"true", "false"}:
                 self.print_token()
                 self.consume = True
                 self.print_production('Primary', "<{}>".format(self.next_token.lexeme))
+
+                if not self.type_check('Boolean'):
+                    return False
                 return True
             # Case: Not primary
             self.consume = False
@@ -302,6 +277,9 @@ class SyntaxAnalyzer(object):
             return False
         self.print_token()
 
+        # Evaluation complete -- reset type checking
+        self.type_checking = False
+
         # Case: <Read> ::= read ( <IDs> );
         self.print_production('Read', 'read ( <IDs> );')
         return True
@@ -335,6 +313,8 @@ class SyntaxAnalyzer(object):
             self.consume = False
         else:
             neg = True
+            # Force a type check with integer-- to avoid multiplying against boolean
+            self.type_check('Integer')
             self.semantic.gen_instr('PUSHI', '-1')
             self.print_token()
 
@@ -416,7 +396,7 @@ class SyntaxAnalyzer(object):
         if not self.qualifier():
             self.consume = False
             return False
-        qualif = self.next_token.lexeme
+        qualif = self.next_token.lexeme.capitalize()
         if not self.IDs(qualif):
             self.error('<IDs>')
             self.consume = False
@@ -488,6 +468,21 @@ class SyntaxAnalyzer(object):
         self.print_production('Term', '')
         return True
 
+
+    def expression(self):
+        """   <Expression>  ::= <Expression> + <Term>  | <Expression>  - <Term>  | <Term>   """
+
+        if not self.term():
+            self.consume = False
+            return False
+        if not self.expression_prime():
+            self.consume = False
+            return False
+
+        self.print_production('Expression', '')
+        return True
+
+
     def expression_prime(self):
 
         self.next_tok()
@@ -512,18 +507,6 @@ class SyntaxAnalyzer(object):
 
         return True
 
-    def expression(self):
-        """   <Expression>  ::= <Expression> + <Term>  | <Expression>  - <Term>  | <Term>   """
-
-        if not self.term():
-            self.consume = False
-            return False
-        if not self.expression_prime():
-            self.consume = False
-            return False
-
-        self.print_production('Expression', '')
-        return True
 
     def condition(self):
         """   <Condition> ::= <Expression> <Relop> <Expression>   """
@@ -532,6 +515,7 @@ class SyntaxAnalyzer(object):
             self.error('<Expression>')
             self.consume = False
             return False
+        self.type_check(self.next_token.lexeme)
         if not self.relop():
             self.error('<Relop>')
             self.consume = False
@@ -544,7 +528,7 @@ class SyntaxAnalyzer(object):
             self.error('<Expression>')
             self.consume = False
             return False
-
+        
         # Conditional semantics
         if rel == '>':
             self.semantic.gen_instr('GRE')
@@ -558,6 +542,9 @@ class SyntaxAnalyzer(object):
             self.semantic.gen_instr('GEQ')
         elif rel == '<=':
             self.semantic.gen_instr('LEQ')
+
+        # Evaluation complete -- reset type checking
+        self.type_checking = False
 
         self.print_production('Condition', '<Expression> <Relop> <Expression>')
         return True
@@ -596,6 +583,9 @@ class SyntaxAnalyzer(object):
             return False
         self.print_token()
 
+        # Evaluation complete -- reset type checking
+        self.type_checking = False
+
         self.print_production('Write', 'write ( <Expression>);')
         return True
 
@@ -608,7 +598,12 @@ class SyntaxAnalyzer(object):
             self.consume = False
             return False
 
-        self.semantic.gen_instr('PUSHM', self.semantic.get_addr(self.next_token.lexeme))
+        addr = self.semantic.get_addr(self.next_token.lexeme)
+        if not addr:
+            self.has_errors = True
+            return False
+        self.semantic.gen_instr('PUSHM', addr)
+        self.type_check(self.next_token.lexeme)
 
         save = self.next_token.lexeme
         self.print_token()
@@ -623,7 +618,12 @@ class SyntaxAnalyzer(object):
             return False
 
         addr = self.semantic.get_addr(save)
+        if not addr:
+            self.has_errors = True
+            return False
         self.semantic.gen_instr('POPM', addr)
+        # Successful evaluation -- Clear type checking
+        self.type_checking = False
 
         self.next_tok()
         if self.lexeme_is_not(";"):
@@ -802,6 +802,9 @@ class SyntaxAnalyzer(object):
         if self._while():
             self.print_production('Statement', '<While>')
             return True
+
+        # Evaluation complete -- reset type checking
+        self.type_checking = False
 
         self.consume = False
         return False

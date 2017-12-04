@@ -1,6 +1,7 @@
 %%
      integer hello, world, x;
      boolean machina;
+	integer hello;
 
-     if (world => q) {read(hello);} else write(world); fi 
-     machina := x;
+     if (world => x) {read(hello);} else write(world); fi 
+     glkasjdg := false;
